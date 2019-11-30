@@ -1,0 +1,7 @@
+/build
+/out
+.gradle
+/local.properties
+.DS_Store
+.idea/dataSources*
+.idea/workspace.xml
