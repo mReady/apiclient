@@ -10,6 +10,7 @@ class JsonElementException(message: String, cause: Throwable? = null) :
     JsonException(message, cause)
 
 class JsonNullElementException(message: String) : JsonException(message)
+class JsonEmptyElementException(message: String) : JsonException(message)
 
 interface JsonSerializer {
     fun string(value: Any?): String
