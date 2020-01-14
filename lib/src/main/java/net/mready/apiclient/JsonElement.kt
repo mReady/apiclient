@@ -94,6 +94,16 @@ class JsonElement(
         }
     }
 
+    fun <T> asListOrNull(mapper: (JsonElement) -> T): List<T>? {
+        checkError()
+
+        if (rawValue is List<*>) {
+            return rawValue.indices.map { mapper(get(it)) }
+        } else {
+            return null
+        }
+    }
+
     fun <T> asMap(mapper: (JsonElement) -> T): Map<String, T> {
         checkError()
 
@@ -101,6 +111,16 @@ class JsonElement(
             return rawValue.keys.map { it.toString() to mapper(get(it.toString())) }.toMap()
         } else {
             throw JsonElementException("Expected array found ${rawValue::class.simpleName} at ${path.joinPath()}")
+        }
+    }
+
+    fun <T> asMapOrNull(mapper: (JsonElement) -> T): Map<String, T>? {
+        checkError()
+
+        if (rawValue is Map<*, *>) {
+            return rawValue.keys.map { it.toString() to mapper(get(it.toString())) }.toMap()
+        } else {
+            return null
         }
     }
 
@@ -121,25 +141,25 @@ fun JsonElement.stringOrNull(): String? = valueOrNull()
 fun JsonElement.string(): String = value()
 
 inline fun JsonElement.intOrElse(default: () -> Int) = intOrNull() ?: default()
-fun JsonElement.intOrNull(): Int? = valueOrNull()
-fun JsonElement.int(): Int = value()
+fun JsonElement.intOrNull(): Int? = valueOrNull<Number>()?.toInt()
+fun JsonElement.int(): Int = value<Number>().toInt()
 
 inline fun JsonElement.longOrElse(default: () -> Long) = longOrNull() ?: default()
-fun JsonElement.longOrNull(): Long? = valueOrNull()
-fun JsonElement.long(): Long = value()
+fun JsonElement.longOrNull(): Long? = valueOrNull<Number>()?.toLong()
+fun JsonElement.long(): Long = value<Number>().toLong()
 
 inline fun JsonElement.doubleOrElse(default: () -> Double) = doubleOrNull() ?: default()
-fun JsonElement.doubleOrNull(): Double? = valueOrNull()
-fun JsonElement.double(): Double = value()
+fun JsonElement.doubleOrNull(): Double? = valueOrNull<Number>()?.toDouble()
+fun JsonElement.double(): Double = value<Number>().toDouble()
 
 inline fun JsonElement.boolOrElse(default: () -> Boolean) = boolOrNull() ?: default()
 fun JsonElement.boolOrNull(): Boolean? = valueOrNull()
 fun JsonElement.bool(): Boolean = value()
 
-inline fun <T> JsonElement.asListOrElse(default: () -> List<T>) = asListOrNull() ?: default()
-fun <T> JsonElement.asListOrNull(): List<T>? = valueOrNull()
-fun <T> JsonElement.asList(): List<T> = value()
+inline fun JsonElement.asListOrElse(default: () -> List<JsonElement>) = asListOrNull() ?: default()
+fun JsonElement.asListOrNull(): List<JsonElement>? = valueOrNull()
+fun JsonElement.asList(): List<JsonElement> = value()
 
-inline fun <T> JsonElement.asMapOrElse(default: () -> Map<String, T>) = asMapOrNull() ?: default()
-fun <T> JsonElement.asMapOrNull(): Map<String, T>? = valueOrNull()
-fun <T> JsonElement.asMap(): Map<String, T> = value()
+inline fun JsonElement.asMapOrElse(default: () -> Map<String, JsonElement>) = asMapOrNull() ?: default()
+fun JsonElement.asMapOrNull(): Map<String, JsonElement>? = valueOrNull()
+fun JsonElement.asMap(): Map<String, JsonElement> = value()
