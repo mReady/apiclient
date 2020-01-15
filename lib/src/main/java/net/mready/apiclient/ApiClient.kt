@@ -7,6 +7,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import net.mready.apiclient.deserializers.KlaxonJsonSerializer
 import okhttp3.*
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -155,7 +156,11 @@ open class ApiClient(
         response: ResponseProcessor<T>
     ): T {
         val requestBody: RequestBody? = if (method.allowBody) {
-            body?.let { prepareRequestBody(it) }
+            if (body != null) {
+                prepareRequestBody(body)
+            } else {
+                "".toRequestBody()
+            }
         } else {
             null
         }
