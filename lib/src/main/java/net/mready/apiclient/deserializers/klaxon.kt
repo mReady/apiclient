@@ -2,7 +2,7 @@ package net.mready.apiclient.deserializers
 
 import com.beust.klaxon.Klaxon
 import net.mready.apiclient.JsonElement
-import net.mready.apiclient.JsonEmptyElementException
+import net.mready.apiclient.JsonInvalidElement
 import net.mready.apiclient.JsonParseException
 import net.mready.apiclient.JsonSerializer
 
@@ -19,7 +19,7 @@ class KlaxonJsonSerializer(private val klaxon: Klaxon) :
                 when {
                     jsonString.startsWith('{') -> klaxon.parseJsonObject(jsonString.reader())
                     jsonString.startsWith('[') -> klaxon.parseJsonArray(jsonString.reader())
-                    jsonString.isEmpty() -> JsonEmptyElementException("The JSON body is empty")
+                    jsonString.isEmpty() -> JsonInvalidElement("The JSON body is empty")
                     else -> throw JsonParseException("Unable to parse JSON string")
                 }
             )

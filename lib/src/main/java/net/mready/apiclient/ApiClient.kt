@@ -57,10 +57,10 @@ open class ApiClient(
         return builder.build()
     }
 
-    protected open fun checkResponse(json: JsonElement) {
+    protected open fun checkResponse(response: Response, json: JsonElement) {
     }
 
-    protected open fun checkErrorResponse(json: JsonElement) {
+    protected open fun checkErrorResponse(response: Response, json: JsonElement) {
     }
 
     protected open suspend fun makeRequest(request: Request): Response {
@@ -183,7 +183,7 @@ open class ApiClient(
                     throw ParseException("Unable to parse request body for $endpoint").initCause(e)
                 }
 
-                checkResponse(responseJson)
+                checkResponse(networkResponse, responseJson)
                 return response(responseJson)
             } else {
                 val statusCode = networkResponse.code
@@ -193,7 +193,7 @@ open class ApiClient(
                     runCatching { parseResponse(responseBody.string()) }
                         .onSuccess {
                             errorProcessor?.invoke(it)
-                            checkErrorResponse(it)
+                            checkErrorResponse(networkResponse, it)
                         }
                 }
 
