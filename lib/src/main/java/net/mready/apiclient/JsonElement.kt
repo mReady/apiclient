@@ -77,7 +77,7 @@ class JsonElement(
         if (rawValue is T) {
             return rawValue
         } else {
-            throw JsonInvalidElement("Expected ${T::class.simpleName} found ${rawValue::class.simpleName} at ${path.joinPath()}")
+            throwError(JsonInvalidElement("Expected ${T::class.simpleName} found ${rawValue::class.simpleName} at ${path.joinPath()}"))
         }
     }
 
@@ -94,13 +94,15 @@ class JsonElement(
     }
 
     fun <T> asList(mapper: (JsonElement) -> T): List<T> {
-        return asListOrNull(mapper)
-            ?: throw JsonInvalidElement("Expected array found ${rawValue::class.simpleName} at ${path.joinPath()}")
+        if (rawValue is List<*>) {
+            return rawValue.indices.map { mapper(get(it)) }
+        } else {
+            checkError()
+            throwError(JsonInvalidElement("Expected array found ${rawValue::class.simpleName} at ${path.joinPath()}"))
+        }
     }
 
     fun <T> asListOrNull(mapper: (JsonElement) -> T): List<T>? {
-        checkError()
-
         if (rawValue is List<*>) {
             return rawValue.indices.map { mapper(get(it)) }
         } else {
@@ -109,13 +111,15 @@ class JsonElement(
     }
 
     fun <T> asMap(mapper: (JsonElement) -> T): Map<String, T> {
-        return asMapOrNull(mapper)
-            ?: throw JsonInvalidElement("Expected array found ${rawValue::class.simpleName} at ${path.joinPath()}")
+        if (rawValue is Map<*, *>) {
+            return rawValue.keys.map { it.toString() to mapper(get(it.toString())) }.toMap()
+        } else {
+            checkError()
+            throwError(JsonInvalidElement("Expected object found ${rawValue::class.simpleName} at ${path.joinPath()}"))
+        }
     }
 
     fun <T> asMapOrNull(mapper: (JsonElement) -> T): Map<String, T>? {
-        checkError()
-
         if (rawValue is Map<*, *>) {
             return rawValue.keys.map { it.toString() to mapper(get(it.toString())) }.toMap()
         } else {
@@ -124,10 +128,13 @@ class JsonElement(
     }
 
     private fun checkError() {
-        if (rawValue is JsonElementException) throw JsonDeserializeException(
-            "JSON error on ${path.joinPath()}",
-            rawValue
-        )
+        if (rawValue is JsonElementException) {
+            throwError(rawValue)
+        }
+    }
+
+    private fun throwError(e: Exception): Nothing {
+        throw JsonDeserializeException("JSON error on ${path.joinPath()}", e)
     }
 
     private fun List<String>.joinPath(): String {
