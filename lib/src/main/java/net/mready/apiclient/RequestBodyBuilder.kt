@@ -2,6 +2,12 @@
 
 package net.mready.apiclient
 
+import net.mready.json.JsonArrayDsl
+import net.mready.json.JsonObjectDsl
+import net.mready.json.JsonValue
+import net.mready.json.kotlinx.KotlinxJsonObjectDsl
+import net.mready.json.kotlinx.jsonArray
+import net.mready.json.kotlinx.jsonObject
 import okhttp3.FormBody
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaType
@@ -12,12 +18,16 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.nio.file.Files
 
-fun jsonObject(block: JsonObjectBodyBuilder.() -> Unit): RequestBodyBuilder {
-    return JsonObjectBodyBuilder().apply(block)
+fun rawBody(content: String?): RequestBodyBuilder {
+    return RawBodyBuilder(content)
 }
 
-fun jsonArray(block: JsonArrayBodyBuilder.() -> Unit): RequestBodyBuilder {
-    return JsonArrayBodyBuilder().apply(block)
+fun jsonObjectBody(block: JsonObjectDsl.() -> Unit): RequestBodyBuilder {
+    return JsonObjectBodyBuilder(block)
+}
+
+fun jsonArrayBody(block: JsonArrayDsl.() -> Unit): RequestBodyBuilder {
+    return JsonArrayBodyBuilder(block)
 }
 
 fun formBody(block: FormBodyBuilder.() -> Unit): RequestBodyBuilder {
@@ -36,37 +46,27 @@ interface RequestBodyBuilder {
 @DslMarker
 annotation class ApiDsl
 
+class RawBodyBuilder(private val content: String?): RequestBodyBuilder {
+    override fun build(serializer: JsonSerializer): RequestBody? {
+        return content?.toRequestBody("text/plain".toMediaType())
+    }
+}
+
 @ApiDsl
-class JsonObjectBodyBuilder : RequestBodyBuilder {
-    val values = mutableMapOf<String, Any?>()
-
-    infix fun String.value(value: String?) {
-        if (value != null) {
-            values[this] = value
-        }
-    }
-
-    infix fun String.value(value: Number?) {
-        values[this] = value
-    }
-
-    infix fun String.value(value: Boolean) {
-        values[this] = value
-    }
-
-    infix fun String.obj(block: JsonObjectBodyBuilder.() -> Unit) {
-        values[this] = JsonObjectBodyBuilder().apply(block).values
-    }
-
-    infix fun String.array(block: JsonArrayBodyBuilder.() -> Unit) {
-        values[this] = JsonArrayBodyBuilder().apply(block).values
-    }
+class JsonObjectBodyBuilder(block: JsonObjectDsl.() -> Unit) : RequestBodyBuilder {
+    private val value: JsonValue = jsonObject(block)
 
     override fun build(serializer: JsonSerializer): RequestBody? {
-        if (values.isEmpty()) return "".toRequestBody("application/json".toMediaType())
+        return value.toJsonString().toRequestBody("application/json".toMediaType())
+    }
+}
 
-        return serializer.string(values)
-            .toRequestBody("application/json".toMediaType())
+@ApiDsl
+class JsonArrayBodyBuilder(block: JsonArrayDsl.() -> Unit) : RequestBodyBuilder {
+    val value: JsonValue = jsonArray(block)
+
+    override fun build(serializer: JsonSerializer): RequestBody? {
+        return value.toJsonString().toRequestBody("application/json".toMediaType())
     }
 }
 
@@ -98,32 +98,6 @@ class FormBodyBuilder : RequestBodyBuilder {
                 add(key, value.toString())
             }
         }.build()
-    }
-}
-
-@ApiDsl
-class JsonArrayBodyBuilder : RequestBodyBuilder {
-    val values = mutableListOf<Any>()
-
-    fun emmit(value: String) {
-        values.add(value)
-    }
-
-    fun emmit(value: Number) {
-        values.add(value)
-    }
-
-    fun emmit(value: Boolean) {
-        values.add(value)
-    }
-
-    fun emmit(block: JsonObjectBodyBuilder.() -> Unit) {
-        values.add(JsonObjectBodyBuilder().apply(block).values)
-    }
-
-    override fun build(serializer: JsonSerializer): RequestBody? {
-        return serializer.string(values)
-            .toRequestBody("application/json".toMediaType())
     }
 }
 

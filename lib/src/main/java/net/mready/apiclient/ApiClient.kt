@@ -5,6 +5,8 @@ package net.mready.apiclient
 import com.beust.klaxon.Klaxon
 import kotlinx.coroutines.suspendCancellableCoroutine
 import net.mready.apiclient.deserializers.KlaxonJsonSerializer
+import net.mready.json.JsonValue
+import net.mready.json.parseJson
 import okhttp3.*
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -17,7 +19,7 @@ class ParseException(message: String) : RuntimeException(message)
 class ApiException(message: String) : RuntimeException(message)
 
 
-typealias ResponseProcessor<T> = (JsonElement) -> T
+typealias ResponseProcessor<T> = (JsonValue) -> T
 
 enum class Method(val allowBody: Boolean) {
     GET(false), POST(true), PUT(true), DELETE(true)
@@ -58,18 +60,18 @@ open class ApiClient(
         return builder.build()
     }
 
-    protected open fun checkResponse(response: Response, json: JsonElement) {
+    protected open fun checkResponse(response: Response, json: JsonValue) {
     }
 
-    protected open fun checkErrorResponse(response: Response, json: JsonElement) {
+    protected open fun checkErrorResponse(response: Response, json: JsonValue) {
     }
 
     protected open suspend fun makeRequest(request: Request): Response {
         return httpClient.newCall(request).await()
     }
 
-    protected open fun parseResponse(body: String): JsonElement {
-        return jsonSerializer.parse(body)
+    protected open fun parseResponse(body: String): JsonValue {
+        return parseJson(body)
     }
 
     suspend fun <T> get(
