@@ -1,7 +1,6 @@
-package net.mready.apiclient
+package net.mready.json
 
-import com.beust.klaxon.Klaxon
-import net.mready.apiclient.deserializers.KlaxonJsonSerializer
+import net.mready.json.impl.KotlinxJsonValue
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
@@ -10,15 +9,15 @@ import kotlin.test.assertNull
 
 class DeserializationTest {
 
-    private val jsonSerializer = KlaxonJsonSerializer(Klaxon())
+    private val adapter: JsonAdapter = KotlinxJsonValue
 
     @Test
     fun emptyDeserialization() {
         val json = """
         """.trimIndent()
-        val jsonElement = jsonSerializer.parse(json)
+        val jsonElement = adapter.parse(json)
 
-        assertFails { jsonElement.int() }
+        assertFails { jsonElement.int }
     }
 
     @Test
@@ -28,9 +27,9 @@ class DeserializationTest {
                 "test": 10
             }
         """.trimIndent()
-        val jsonElement = jsonSerializer.parse(json)
+        val jsonElement = adapter.parse(json)
 
-        assertEquals(10, jsonElement["test"].int())
+        assertEquals(10, jsonElement["test"].int)
     }
 
     @Test
@@ -40,21 +39,9 @@ class DeserializationTest {
                 "test": 10
             }
         """.trimIndent()
-        val jsonElement = jsonSerializer.parse(json)
+        val jsonElement = adapter.parse(json)
 
-        assertNull(jsonElement["test1"].intOrNull())
-    }
-
-    @Test
-    fun jsonBodyMissingValueElse() {
-        val json = """
-            {
-                "test": 10
-            }
-        """.trimIndent()
-        val jsonElement = jsonSerializer.parse(json)
-
-        assertEquals(5, jsonElement["test1"].intOrElse { 5 })
+        assertNull(jsonElement["test1"].intOrNull)
     }
 
     @Test
@@ -64,9 +51,9 @@ class DeserializationTest {
                 "test": 10
             }
         """.trimIndent()
-        val jsonElement = jsonSerializer.parse(json)
+        val jsonElement = adapter.parse(json)
 
-        assertFails { jsonElement["test1"].int() }
+        assertFails { jsonElement["test1"].int }
     }
 
     @Test
@@ -82,9 +69,9 @@ class DeserializationTest {
                 }
             }
         """.trimIndent()
-        val jsonElement = jsonSerializer.parse(json)
+        val jsonElement = adapter.parse(json)
 
-        assertEquals(10, jsonElement["obj1"]["obj2"]["obj3"]["test"].int())
+        assertEquals(10, jsonElement["obj1"]["obj2"]["obj3"]["test"].int)
     }
 
     @Test
@@ -100,9 +87,9 @@ class DeserializationTest {
                 }
             }
         """.trimIndent()
-        val jsonElement = jsonSerializer.parse(json)
+        val jsonElement = adapter.parse(json)
 
-       assertFails { jsonElement["obj1"]["obj2"]["obj3"]["obj4"]["test"].int() }
+        assertFails { jsonElement["obj1"]["obj2"]["obj3"]["obj4"]["test"].int }
     }
 
     @Test
@@ -114,9 +101,9 @@ class DeserializationTest {
                 10
             ]
         """.trimIndent()
-        val jsonElement = jsonSerializer.parse(json)
+        val jsonElement = adapter.parse(json)
 
-        assertEquals(3, jsonElement.asList().size)
+        assertEquals(3, jsonElement.array.size)
     }
 
     @Test
@@ -128,9 +115,9 @@ class DeserializationTest {
                 10
             ]
         """.trimIndent()
-        val jsonElement = jsonSerializer.parse(json)
+        val jsonElement = adapter.parse(json)
 
-        assertEquals(10, jsonElement.asList()[0].int())
+        assertEquals(10, jsonElement.array[0].int)
     }
 
     @Test
@@ -142,27 +129,27 @@ class DeserializationTest {
                 10
             ]
         """.trimIndent()
-        val jsonElement = jsonSerializer.parse(json)
+        val jsonElement = adapter.parse(json)
 
-        assertEquals(30, jsonElement.asList { it.int() }.sum())
+        assertEquals(30, jsonElement.array.map { it.int }.sum())
     }
 
     @Test
     fun jsonArrayNullThrow() {
         val json = """
         """.trimIndent()
-        val jsonElement = jsonSerializer.parse(json)
+        val jsonElement = adapter.parse(json)
 
-        assertFails { jsonElement.asList { it.int() } }
+        assertFails { jsonElement.array.map { it.int } }
     }
 
     @Test
     fun jsonArrayNull() {
         val json = """
         """.trimIndent()
-        val jsonElement = jsonSerializer.parse(json)
+        val jsonElement = adapter.parse(json)
 
-        assertEquals(null, jsonElement.asListOrNull { it.int() })
+        assertEquals(null, jsonElement.arrayOrNull?.map { it.int })
     }
 
     @Test
@@ -173,9 +160,9 @@ class DeserializationTest {
                 "test1": "string"
             }
         """.trimIndent()
-        val jsonElement = jsonSerializer.parse(json)
+        val jsonElement = adapter.parse(json)
 
-        assertEquals(10, jsonElement.asMap()["test"]?.int())
+        assertEquals(10, jsonElement.obj["test"]?.int)
     }
 
     @Test
@@ -185,9 +172,9 @@ class DeserializationTest {
                 "test": 10
             }
         """.trimIndent()
-        val jsonElement = jsonSerializer.parse(json)
+        val jsonElement = adapter.parse(json)
 
-        assertEquals(10, jsonElement.asMap { it.int() }["test"])
+        assertEquals(10, jsonElement.obj.mapValues { it.value.int }["test"])
     }
 
     @Test
@@ -199,9 +186,9 @@ class DeserializationTest {
                 }
             ]
         """.trimIndent()
-        val jsonElement = jsonSerializer.parse(json)
+        val jsonElement = adapter.parse(json)
 
-        assertFails { jsonElement.asMap() }
+        assertFails { jsonElement.obj }
     }
 
     @Test
@@ -213,8 +200,8 @@ class DeserializationTest {
                 }
             ]
         """.trimIndent()
-        val jsonElement = jsonSerializer.parse(json)
+        val jsonElement = adapter.parse(json)
 
-        assertNull(jsonElement.asMapOrNull())
+        assertNull(jsonElement.objOrNull)
     }
 }
