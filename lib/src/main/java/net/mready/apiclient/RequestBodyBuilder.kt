@@ -77,12 +77,12 @@ class FormBodyBuilder : RequestBodyBuilder {
         }
     }
 
-    infix fun String.value(value: Boolean) {
+    infix fun String.value(value: Boolean?) {
         values.add(this to value)
     }
 
     override fun build(adapter: JsonAdapter): RequestBody? {
-        if (values.isEmpty()) return FormBody.Builder().build()
+        if (values.isEmpty()) return null
 
         return FormBody.Builder().apply {
             values.forEach { (key, value) ->
@@ -116,7 +116,7 @@ class MultiPartBodyBuilder : RequestBodyBuilder {
         }
     }
 
-    infix fun String.value(value: Boolean) {
+    infix fun String.value(value: Boolean?) {
         val part = MultipartBody.Part.createFormData(
             name = this,
             value = value.toString()
