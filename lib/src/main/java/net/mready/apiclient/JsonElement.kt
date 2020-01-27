@@ -164,8 +164,8 @@ fun JsonElement.bool(): Boolean = value()
 
 inline fun JsonElement.asListOrElse(default: () -> List<JsonElement>) = asListOrNull() ?: default()
 fun JsonElement.asListOrNull(): List<JsonElement>? = valueOrNull()
-fun JsonElement.asList(): List<JsonElement> = value()
+fun JsonElement.asList(): List<JsonElement> = asList { it }
 
 inline fun JsonElement.asMapOrElse(default: () -> Map<String, JsonElement>) = asMapOrNull() ?: default()
 fun JsonElement.asMapOrNull(): Map<String, JsonElement>? = valueOrNull()
-fun JsonElement.asMap(): Map<String, JsonElement> = value()
+fun JsonElement.asMap(): Map<String, JsonElement> = asMap { it }
