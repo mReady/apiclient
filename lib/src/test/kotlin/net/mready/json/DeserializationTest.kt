@@ -1,15 +1,24 @@
 package net.mready.json
 
-import net.mready.json.impl.KotlinxJsonValue
+import net.mready.json.experimental.ExperimentalJsonAdapter
 import org.junit.Test
+import org.junit.runners.Parameterized
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
 import kotlin.test.assertNull
 
-
+//@RunWith(Parameterized::class)
 class DeserializationTest {
 
-    private val adapter: JsonAdapter = KotlinxJsonValue
+    private val adapter: JsonAdapter = ExperimentalJsonAdapter
+
+    companion object {
+        @JvmStatic
+        @Parameterized.Parameters
+        fun data(): Array<Array<Any?>>? {
+            return Array(100) { arrayOfNulls<Any>(0) }
+        }
+    }
 
     @Test
     fun emptyDeserialization() {

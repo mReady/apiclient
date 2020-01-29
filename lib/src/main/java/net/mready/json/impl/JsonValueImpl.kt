@@ -3,44 +3,10 @@ package net.mready.json.impl
 import kotlinx.serialization.json.*
 import net.mready.json.*
 
-
-class KotlinxJsonValue internal constructor(
+class JsonValueImpl internal constructor(
     private val value: Any, // JsonValueException | kotlinx.serialization.json.JsonElement
     private val path: List<String> = listOf("[root]")
 ) : JsonValue {
-
-    companion object : JsonAdapter {
-        override val EMPTY_JSON: JsonValue by lazy { KotlinxJsonValue(JsonValueException("Empty JSON")) }
-
-        override fun parse(string: String): JsonValue {
-            if (string.isBlank()) {
-                return EMPTY_JSON
-            }
-
-            try {
-                @Suppress("EXPERIMENTAL_API_USAGE")
-                return KotlinxJsonValue(Json.parse(JsonElementSerializer, string))
-            } catch (e: Throwable) {
-                throw JsonParseException(e.message ?: "Unable to parse JSON", e)
-            }
-        }
-
-        override fun buildObject(block: JsonObjectDsl.() -> Unit): JsonValue {
-            return KotlinxJsonValue(KotlinxJsonObjectDsl().apply(block).build())
-        }
-
-        override fun buildArray(block: JsonArrayDsl.() -> Unit): JsonValue {
-            return KotlinxJsonValue(KotlinxJsonArrayDsl().apply(block).build())
-        }
-    }
-
-    fun asJsonElement(): JsonElement {
-        if (value is JsonElement) {
-            return value
-        } else {
-            checkErrorOrThrow { throw AssertionError() }
-        }
-    }
 
     private val pathString: String get() = path.joinToString(" > ")
 
@@ -55,9 +21,9 @@ class KotlinxJsonValue internal constructor(
         val childPath = path + key
 
         return when (value) {
-            is JsonValueException -> KotlinxJsonValue(value, childPath)
-            is JsonObject -> KotlinxJsonValue(value[key] ?: JsonNull, childPath)
-            else -> KotlinxJsonValue(
+            is JsonValueException -> JsonValueImpl(value, childPath)
+            is JsonObject -> JsonValueImpl(value[key] ?: JsonNull, childPath)
+            else -> JsonValueImpl(
                 value = JsonValueException("Element is not an object at $pathString"),
                 path = childPath
             )
@@ -68,12 +34,37 @@ class KotlinxJsonValue internal constructor(
         val childPath = path + "[$index]"
 
         return when (value) {
-            is JsonValueException -> KotlinxJsonValue(value, childPath)
-            is JsonArray -> KotlinxJsonValue(value.getOrNull(index) ?: JsonNull, childPath)
-            else -> KotlinxJsonValue(
+            is JsonValueException -> JsonValueImpl(value, childPath)
+            is JsonArray -> if (index >= 0 && index < value.size) {
+                JsonValueImpl(value[index], childPath)
+            } else {
+                JsonValueImpl(
+                    value = JsonValueException("Index $index out of bounds (size: ${value.size}) at $pathString"),
+                    path = childPath
+                )
+            }
+            else -> JsonValueImpl(
                 value = JsonValueException("Element is not an array at $pathString"),
                 path = childPath
             )
+        }
+    }
+
+    override fun <T> valueOrNull(): T? {
+        if (value !is JsonValueException) {
+            @Suppress("UNCHECKED_CAST")
+            return value as T
+        } else {
+            return null
+        }
+    }
+
+    override fun <T> value(): T {
+        if (value !is JsonValueException) {
+            @Suppress("UNCHECKED_CAST")
+            return value as T
+        } else {
+            checkErrorOrThrow { throw AssertionError() }
         }
     }
 
@@ -165,7 +156,7 @@ class KotlinxJsonValue internal constructor(
 
     override val arrayOrNull: List<JsonValue>?
         get() = if (value is JsonArray) {
-            value.mapIndexed { index, item -> KotlinxJsonValue(item, path + "[$index]") }
+            value.mapIndexed { index, item -> JsonValueImpl(item, path + "[$index]") }
         } else {
             null
         }
@@ -177,7 +168,7 @@ class KotlinxJsonValue internal constructor(
 
     override val objOrNull: Map<String, JsonValue>?
         get() = if (value is JsonObject) {
-            value.mapValues { KotlinxJsonValue(it.value, path + it.key) }
+            value.mapValues { JsonValueImpl(it.value, path + it.key) }
         } else {
             null
         }

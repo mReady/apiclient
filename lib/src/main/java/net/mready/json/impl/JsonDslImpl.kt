@@ -6,17 +6,17 @@ import net.mready.json.JsonDsl
 import net.mready.json.JsonObjectDsl
 import net.mready.json.JsonValue
 
-open class KotlinxJsonDsl: JsonDsl {
+internal open class JsonDslImpl: JsonDsl {
     override fun jsonArray(block: JsonArrayDsl.() -> Unit): JsonValue {
-        return KotlinxJsonValue(KotlinxJsonArrayDsl().apply(block).build())
+        return JsonValueImpl(JsonArrayDslImpl().apply(block).build())
     }
 
     override fun jsonObject(block: JsonObjectDsl.() -> Unit): JsonValue {
-        return KotlinxJsonValue(KotlinxJsonObjectDsl().apply(block).build())
+        return JsonValueImpl(JsonObjectDslImpl().apply(block).build())
     }
 }
 
-class KotlinxJsonObjectDsl : KotlinxJsonDsl(), JsonObjectDsl {
+internal class JsonObjectDslImpl : JsonDslImpl(), JsonObjectDsl {
     private val content = mutableMapOf<String, JsonElement>()
 
     override fun String.value(value: Nothing?) {
@@ -38,17 +38,17 @@ class KotlinxJsonObjectDsl : KotlinxJsonDsl(), JsonObjectDsl {
     override fun String.value(value: JsonValue?) {
         content[this] = when(value) {
             null -> JsonNull
-            is KotlinxJsonValue -> value.asJsonElement()
+            is JsonValueImpl -> value.value()
             else -> throw IllegalArgumentException("JsonValue must be built with the same adapter")
         }
     }
 
     override infix fun String.jsonArray(block: JsonArrayDsl.() -> Unit) {
-        content[this] = KotlinxJsonArrayDsl().apply(block).build()
+        content[this] = JsonArrayDslImpl().apply(block).build()
     }
 
     override infix fun String.jsonObject(block: JsonObjectDsl.() -> Unit) {
-        content[this] = KotlinxJsonObjectDsl().apply(block).build()
+        content[this] = JsonObjectDslImpl().apply(block).build()
     }
 
     internal fun build(): JsonObject {
@@ -56,7 +56,7 @@ class KotlinxJsonObjectDsl : KotlinxJsonDsl(), JsonObjectDsl {
     }
 }
 
-class KotlinxJsonArrayDsl : KotlinxJsonDsl(), JsonArrayDsl {
+internal class JsonArrayDslImpl : JsonDslImpl(), JsonArrayDsl {
     private val content: MutableList<JsonElement> = mutableListOf()
 
     override val array = JsonArrayDsl.ArrayItemsCollector
@@ -80,7 +80,7 @@ class KotlinxJsonArrayDsl : KotlinxJsonDsl(), JsonArrayDsl {
     override fun emit(value: JsonValue?) {
         content += when(value) {
             null -> JsonNull
-            is KotlinxJsonValue -> value.asJsonElement()
+            is JsonValueImpl -> value.value<JsonElement>()
             else -> throw IllegalArgumentException("JsonValue must be built with the same adapter")
         }
     }

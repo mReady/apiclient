@@ -9,6 +9,9 @@ interface JsonValue {
     operator fun get(key: String): JsonValue
     operator fun get(index: Int): JsonValue
 
+    fun <T> valueOrNull(): T?
+    fun <T> value(): T
+
     val isNull: Boolean
     val orNull: JsonValue?
 

@@ -38,4 +38,8 @@ interface JsonArrayDsl: JsonDsl {
     fun emit(value: Number?)
     fun emit(value: Boolean?)
     fun emit(value: JsonValue?)
+
+    fun <T> Collection<T>.emitEach(block: (T) -> JsonValue) {
+        forEach { emit(block(it)) }
+    }
 }
