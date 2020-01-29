@@ -1,18 +1,15 @@
 package net.mready.json
 
-import net.mready.json.experimental.ExperimentalJsonAdapter
 import org.junit.Test
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 
 class InvalidInputTests {
-
-    private val adapter: JsonAdapter = ExperimentalJsonAdapter
+    private val adapter: JsonAdapter = DefaultJsonAdapter
 
     @Test
     fun emptyDeserialization() {
-        val json = """
-        """.trimIndent()
+        val json = ""
         val jsonElement = adapter.parse(json)
 
         assertFailsWith<JsonValueException> { jsonElement.int }

@@ -5,7 +5,6 @@ package net.mready.apiclient
 import net.mready.json.JsonAdapter
 import net.mready.json.JsonValue
 import net.mready.json.DefaultJsonAdapter
-import net.mready.json.parse
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -70,7 +69,7 @@ open class ApiClient(
         return if (responseBody != null && responseBody.contentLength() != 0L) {
             JsonValue.parse(responseBody.string(), jsonAdapter)
         } else {
-            jsonAdapter.EMPTY_JSON
+            JsonValue()
         }
     }
 

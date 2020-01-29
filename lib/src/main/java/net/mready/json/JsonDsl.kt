@@ -1,45 +1,96 @@
 package net.mready.json
 
+
 @DslMarker
 annotation class JsonDslMarker
 
-@JsonDslMarker
-interface JsonDsl {
-    fun jsonArray(block: JsonArrayDsl.() -> Unit): JsonValue
-    fun jsonObject(block: JsonObjectDsl.() -> Unit): JsonValue
+inline fun jsonObject(block: JsonObjectDsl.() -> Unit): JsonValue {
+    return JsonObjectDsl().apply(block).build()
+}
+
+inline fun jsonArray(block: JsonArrayDsl.() -> Unit): JsonValue {
+    return JsonArrayDsl().apply(block).build()
 }
 
 @JsonDslMarker
-interface JsonObjectDsl: JsonDsl {
-    infix fun String.value(value: Nothing?)
-    infix fun String.value(value: String?)
-    infix fun String.value(value: Number?)
-    infix fun String.value(value: Boolean?)
-    infix fun String.value(value: JsonValue?)
+open class JsonDsl(@PublishedApi internal val path: String = PATH_ROOT_MARKER) {
+    inline fun jsonArray(block: JsonArrayDsl.() -> Unit): JsonValue {
+        return JsonArrayDsl(path).apply(block).build()
+    }
 
-    infix fun String.jsonArray(block: JsonArrayDsl.() -> Unit)
-    infix fun String.jsonObject(block: JsonObjectDsl.() -> Unit)
+    inline fun jsonObject(block: JsonObjectDsl.() -> Unit): JsonValue {
+        return JsonObjectDsl(path).apply(block).build()
+    }
 }
 
 @JsonDslMarker
-interface JsonArrayDsl: JsonDsl {
-    object ArrayItemsCollector
+class JsonObjectDsl(path: String = PATH_ROOT_MARKER) : JsonDsl(path) {
+    val obj: JsonValue = JsonObject(mutableMapOf(), path)
 
-    val array: ArrayItemsCollector
+    infix fun String.value(value: Nothing?) {
+        obj[this] = value
+    }
 
-    operator fun ArrayItemsCollector.plusAssign(value: Nothing?) = emit(value)
-    operator fun ArrayItemsCollector.plusAssign(value: String?) = emit(value)
-    operator fun ArrayItemsCollector.plusAssign(value: Number?) = emit(value)
-    operator fun ArrayItemsCollector.plusAssign(value: Boolean?) = emit(value)
-    operator fun ArrayItemsCollector.plusAssign(value: JsonValue) = emit(value)
+    infix fun String.value(value: String?) {
+        obj[this] = value
+    }
 
-    fun emit(value: Nothing?)
-    fun emit(value: String?)
-    fun emit(value: Number?)
-    fun emit(value: Boolean?)
-    fun emit(value: JsonValue?)
+    infix fun String.value(value: Number?) {
+        obj[this] = value
+    }
 
-    fun <T> Collection<T>.emitEach(block: (T) -> JsonValue) {
+    infix fun String.value(value: Boolean?) {
+        obj[this] = value
+    }
+
+    infix fun String.value(value: JsonValue?) {
+        obj[this] = value ?: JsonNull(path)
+    }
+
+    inline infix fun String.jsonArray(block: JsonArrayDsl.() -> Unit) {
+        obj[this] = JsonArrayDsl(path.expandPath(this)).apply(block).build()
+    }
+
+    inline infix fun String.jsonObject(block: JsonObjectDsl.() -> Unit) {
+        obj[this] = JsonObjectDsl(path.expandPath(this)).apply(block).build()
+    }
+
+    @PublishedApi
+    internal fun build(): JsonValue {
+        return obj
+    }
+}
+
+@JsonDslMarker
+class JsonArrayDsl(path: String = PATH_ROOT_MARKER) : JsonDsl(path) {
+    val array: JsonValue = JsonArray(mutableListOf(), path)
+
+    fun emit(value: Nothing?) {
+        array += null
+    }
+
+    fun emit(value: String?) {
+        array += value
+    }
+
+    fun emit(value: Number?) {
+        array += value
+    }
+
+    fun emit(value: Boolean?) {
+        array += value
+    }
+
+    fun emit(value: JsonValue?) {
+        array += value ?: JsonNull(path.expandPath(array.size))
+    }
+
+    inline fun <T> Collection<T>.emitEach(block: (T) -> JsonValue) {
         forEach { emit(block(it)) }
+    }
+
+    @PublishedApi
+    internal fun build(): JsonValue {
+        return array
     }
 }

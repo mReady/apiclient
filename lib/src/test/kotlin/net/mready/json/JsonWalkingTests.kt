@@ -1,13 +1,12 @@
 package net.mready.json
 
-import net.mready.json.experimental.ExperimentalJsonAdapter
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class JsonWalkingTests {
 
-    private val adapter: JsonAdapter = ExperimentalJsonAdapter
+    private val adapter: JsonAdapter = DefaultJsonAdapter
 
     @Test
     fun primitives() {

@@ -1,14 +1,12 @@
 package net.mready.json
 
-import net.mready.json.experimental.ExperimentalJsonAdapter
-import net.mready.json.experimental.JsonElement
 import org.junit.Test
 import org.junit.runners.Parameterized
 import kotlin.test.assertEquals
 
 //@RunWith(Parameterized::class)
 class JsonBuilderTests {
-    private val adapter: JsonAdapter = ExperimentalJsonAdapter
+    private val adapter: JsonAdapter = DefaultJsonAdapter
 
     companion object {
         @JvmStatic
@@ -20,17 +18,17 @@ class JsonBuilderTests {
 
     @Test
     fun buildSimpleObject() {
-        val json = jsonObject(adapter) {
+        val json = jsonObject {
             "hello" value "world"
         }
 
         assertEquals("world", json["hello"].string)
-        assertEquals("""{"hello":"world"}""", json.toJsonString(prettyPrint = false))
+        assertEquals("""{"hello":"world"}""", adapter.stringify(json))
     }
 
     @Test
     fun objectWithPrimitiveValues() {
-        val json = jsonObject(adapter) {
+        val json = jsonObject {
             "string" value "hello"
             "int" value 1
             "long" value 1L
@@ -54,7 +52,7 @@ class JsonBuilderTests {
 
     @Test
     fun objectWithNestedObject() {
-        val json = jsonObject(adapter) {
+        val json = jsonObject {
             "obj" jsonObject {
                 "hello" value "world"
             }
@@ -62,12 +60,12 @@ class JsonBuilderTests {
 
         assertEquals("world", json["obj"]["hello"].string)
 
-        assertEquals("""{"obj":{"hello":"world"}}""", json.toJsonString(prettyPrint = false))
+        assertEquals("""{"obj":{"hello":"world"}}""", adapter.stringify(json))
     }
 
     @Test
     fun objectWithNestedArray() {
-        val json = jsonObject(adapter) {
+        val json = jsonObject {
             "arr" jsonArray {
                 array += 1
             }
@@ -75,24 +73,24 @@ class JsonBuilderTests {
 
         assertEquals(1, json["arr"][0].int)
 
-        assertEquals("""{"arr":[1]}""", json.toJsonString(prettyPrint = false))
+        assertEquals("""{"arr":[1]}""", adapter.stringify(json))
     }
 
     @Test
     fun buildSimpleArray() {
-        val json = jsonArray(adapter) {
+        val json = jsonArray {
             array += 1
             array += 2
             array += 3
         }
 
         assertEquals(listOf(1, 2, 3), json.array.map { it.int })
-        assertEquals("""[1,2,3]""", json.toJsonString(prettyPrint = false))
+        assertEquals("""[1,2,3]""", adapter.stringify(json))
     }
 
     @Test
     fun arrayWithPrimitiveValues() {
-        val json = jsonArray(adapter) {
+        val json = jsonArray {
             array += "hello"
             array += 1
             array += 1L
@@ -108,12 +106,12 @@ class JsonBuilderTests {
         assertEquals(true, json[4].bool)
         assertEquals(true, json[5].isNull)
 
-        assertEquals("""["hello",1,1,1.0,true,null]""", json.toJsonString(prettyPrint = false))
+        assertEquals("""["hello",1,1,1.0,true,null]""", adapter.stringify(json))
     }
 
     @Test
     fun arrayWithNestedObject() {
-        val json = jsonArray(adapter) {
+        val json = jsonArray {
             array += jsonObject {
                 "hello" value "world"
             }
@@ -121,12 +119,12 @@ class JsonBuilderTests {
 
         assertEquals("world", json[0]["hello"].string)
 
-        assertEquals("""[{"hello":"world"}]""", json.toJsonString(prettyPrint = false))
+        assertEquals("""[{"hello":"world"}]""", adapter.stringify(json))
     }
 
     @Test
     fun arrayWithNestedArray() {
-        val json = jsonArray(adapter) {
+        val json = jsonArray {
             array += jsonArray {
                 array += 1
             }
@@ -134,12 +132,12 @@ class JsonBuilderTests {
 
         assertEquals(1, json[0][0].int)
 
-        assertEquals("""[[1]]""", json.toJsonString(prettyPrint = false))
+        assertEquals("""[[1]]""", adapter.stringify(json))
     }
 
     @Test
     fun test() {
-        val json = JsonElement()
+        val json = JsonValue()
         json["null"] = null
         json["hello"] = 123
         json["obj"]["sub"] = "1234"
@@ -159,7 +157,7 @@ class JsonBuilderTests {
 
         assertEquals(
             """{"null":null,"hello":123,"obj":{"sub":"1234"},"arr":[null,true],"arr2":[1,2]}""",
-            json.toJsonString(prettyPrint = false)
+            adapter.stringify(json)
         )
     }
 }
