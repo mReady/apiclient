@@ -117,7 +117,7 @@ class JsonWalkingTests {
         """.trimIndent()
         val jsonElement = adapter.parse(json)
 
-        assertFailsWith<IndexOutOfBoundsException> { jsonElement[5].int }
+        assertFailsWith<JsonValueException> { jsonElement[5].int }
     }
 
     @Test

@@ -1,12 +1,12 @@
 package net.mready.json
 
 import net.mready.json.experimental.ExperimentalJsonAdapter
+import net.mready.json.experimental.JsonElement
 import org.junit.Test
-import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 import kotlin.test.assertEquals
 
-@RunWith(Parameterized::class)
+//@RunWith(Parameterized::class)
 class JsonBuilderTests {
     private val adapter: JsonAdapter = ExperimentalJsonAdapter
 
@@ -14,7 +14,7 @@ class JsonBuilderTests {
         @JvmStatic
         @Parameterized.Parameters
         fun data(): Array<Array<Any?>>? {
-            return Array(100) { arrayOfNulls<Any>(0) }
+            return Array(1000) { arrayOfNulls<Any>(0) }
         }
     }
 
@@ -135,5 +135,31 @@ class JsonBuilderTests {
         assertEquals(1, json[0][0].int)
 
         assertEquals("""[[1]]""", json.toJsonString(prettyPrint = false))
+    }
+
+    @Test
+    fun test() {
+        val json = JsonElement()
+        json["null"] = null
+        json["hello"] = 123
+        json["obj"]["sub"] = "1234"
+        json["arr"][1] = true
+        json["arr2"] += 1
+        json["arr2"] += 2
+
+        assertEquals(true, json["null"].isNull)
+        assertEquals(123, json["hello"].int)
+        assertEquals("1234", json["obj"]["sub"].string)
+        assertEquals(true, json["arr"][0].isNull)
+        assertEquals(true, json["arr"][1].bool)
+        assertEquals(1, json["arr2"][0].int)
+        assertEquals(2, json["arr2"][1].int)
+
+        println(json.toJsonString(prettyPrint = true))
+
+        assertEquals(
+            """{"null":null,"hello":123,"obj":{"sub":"1234"},"arr":[null,true],"arr2":[1,2]}""",
+            json.toJsonString(prettyPrint = false)
+        )
     }
 }

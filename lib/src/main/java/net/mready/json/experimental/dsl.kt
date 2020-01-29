@@ -5,33 +5,33 @@ import net.mready.json.JsonDsl
 import net.mready.json.JsonObjectDsl
 import net.mready.json.JsonValue
 
-internal open class ExJsonDsl : JsonDsl {
+internal open class ExJsonDsl(protected val path: String = PATH_ROOT_MARKER): JsonDsl {
     override fun jsonArray(block: JsonArrayDsl.() -> Unit): JsonValue {
-        return ExJsonArrayDsl().apply(block).build()
+        return ExJsonArrayDsl(path).apply(block).build()
     }
 
     override fun jsonObject(block: JsonObjectDsl.() -> Unit): JsonValue {
-        return ExJsonObjectDsl().apply(block).build()
+        return ExJsonObjectDsl(path).apply(block).build()
     }
 }
 
-internal class ExJsonObjectDsl : ExJsonDsl(), JsonObjectDsl {
+internal class ExJsonObjectDsl(path: String = PATH_ROOT_MARKER) : ExJsonDsl(path), JsonObjectDsl {
     private val content = mutableMapOf<String, JsonElement>()
 
     override fun String.value(value: Nothing?) {
-        content[this] = JsonNull()
+        content[this] = JsonNull(path.expandPath(this))
     }
 
     override fun String.value(value: String?) {
-        content[this] = value?.let { JsonPrimitive(it, JsonPrimitive.Type.STRING) } ?: JsonNull()
+        content[this] = JsonElement.wrap(value, path.expandPath(this))
     }
 
     override fun String.value(value: Number?) {
-        content[this] = value?.let { JsonPrimitive(it.toString(), JsonPrimitive.Type.NUMBER) } ?: JsonNull()
+        content[this] = JsonElement.wrap(value, path.expandPath(this))
     }
 
     override fun String.value(value: Boolean?) {
-        content[this] = value?.let { JsonPrimitive(it.toString(), JsonPrimitive.Type.BOOLEAN) } ?: JsonNull()
+        content[this] = JsonElement.wrap(value, path.expandPath(this))
     }
 
     override fun String.value(value: JsonValue?) {
@@ -43,37 +43,37 @@ internal class ExJsonObjectDsl : ExJsonDsl(), JsonObjectDsl {
     }
 
     override infix fun String.jsonArray(block: JsonArrayDsl.() -> Unit) {
-        content[this] = ExJsonArrayDsl().apply(block).build()
+        content[this] = ExJsonArrayDsl(path.expandPath(this)).apply(block).build()
     }
 
     override infix fun String.jsonObject(block: JsonObjectDsl.() -> Unit) {
-        content[this] = ExJsonObjectDsl().apply(block).build()
+        content[this] = ExJsonObjectDsl(path.expandPath(this)).apply(block).build()
     }
 
     internal fun build(): JsonElement {
-        return JsonObject(content)
+        return JsonObject(content, path)
     }
 }
 
-internal class ExJsonArrayDsl : ExJsonDsl(), JsonArrayDsl {
+internal class ExJsonArrayDsl(path: String = PATH_ROOT_MARKER) : ExJsonDsl(path), JsonArrayDsl {
     private val content: MutableList<JsonElement> = mutableListOf()
 
     override val array = JsonArrayDsl.ArrayItemsCollector
 
     override fun emit(value: Nothing?) {
-        content += JsonNull()
+        content += JsonNull(path.expandPath(content.size))
     }
 
     override fun emit(value: String?) {
-        content += value?.let { JsonPrimitive(it, JsonPrimitive.Type.STRING) } ?: JsonNull()
+        content += JsonElement.wrap(value, path.expandPath(content.size))
     }
 
     override fun emit(value: Number?) {
-        content += value?.let { JsonPrimitive(it.toString(), JsonPrimitive.Type.NUMBER) } ?: JsonNull()
+        content += JsonElement.wrap(value, path.expandPath(content.size))
     }
 
     override fun emit(value: Boolean?) {
-        content += value?.let { JsonPrimitive(it.toString(), JsonPrimitive.Type.BOOLEAN) } ?: JsonNull()
+        content += JsonElement.wrap(value, path.expandPath(content.size))
     }
 
     override fun emit(value: JsonValue?) {
@@ -85,6 +85,6 @@ internal class ExJsonArrayDsl : ExJsonDsl(), JsonArrayDsl {
     }
 
     internal fun build(): JsonElement {
-        return JsonArray(content)
+        return JsonArray(content, path)
     }
 }

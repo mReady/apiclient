@@ -1,6 +1,7 @@
 package net.mready.json
 
-class JsonValueException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
+class JsonValueException(message: String, val path: String? = null, cause: Throwable? = null)
+    : RuntimeException("$message ${path?.let { " (at $path)" }.orEmpty()}", cause)
 
 interface JsonValue {
     // Allow extensions on companion object
