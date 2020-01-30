@@ -13,13 +13,18 @@ interface JsonAdapter {
 
 object DefaultJsonAdapter : JsonAdapter {
     override fun parse(string: String): JsonValue {
-        if (string.isBlank()) {
-            return JsonEmpty()
+        val jsonString = string.trim()
+        if (jsonString.isEmpty()) {
+            return JsonValue()
+        }
+
+        if (!jsonString.startsWith('{') && !jsonString.startsWith('[')) {
+            return JsonPrimitive(jsonString, JsonPrimitive.Type.UNKNOWN)
         }
 
         try {
             @Suppress("EXPERIMENTAL_API_USAGE")
-            return Json.parse(JsonValueSerializer, string)
+            return Json.parse(JsonValueSerializer, jsonString)
         } catch (e: Throwable) {
             throw JsonParseException(e.message ?: "Unable to parse JSON", e)
         }

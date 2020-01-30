@@ -1,3 +1,5 @@
+@file:Suppress("NOTHING_TO_INLINE", "UNUSED_PARAMETER")
+
 package net.mready.json
 
 class JsonValueException(
@@ -8,35 +10,23 @@ class JsonValueException(
 
 sealed class JsonValue(internal val path: String) {
     companion object {
-        fun parse(string: String, adapter: JsonAdapter = DefaultJsonAdapter): JsonValue {
-            return adapter.parse(string)
-        }
+        fun parse(string: String, adapter: JsonAdapter = DefaultJsonAdapter) = adapter.parse(string)
 
         operator fun invoke(): JsonValue = JsonEmpty()
 
         @Suppress("UNUSED_PARAMETER")
         operator fun invoke(value: Nothing?): JsonValue = JsonNull()
-        operator fun invoke(value: String?): JsonValue = wrap(value)
-        operator fun invoke(value: Number?): JsonValue = wrap(value)
-        operator fun invoke(value: Boolean?): JsonValue = wrap(value)
-
-        internal inline fun <reified T> wrap(value: T, path: String = PATH_ROOT_MARKER): JsonValue {
-            return when (value) {
-                null -> JsonNull(path)
-                is String -> JsonPrimitive(value, JsonPrimitive.Type.STRING, path)
-                is Number -> JsonPrimitive(value.toString(), JsonPrimitive.Type.NUMBER, path)
-                is Boolean -> JsonPrimitive(value.toString(), JsonPrimitive.Type.BOOLEAN, path)
-                else -> TODO()
-            }
-        }
+        operator fun invoke(value: String?): JsonValue = wrapValue(value)
+        operator fun invoke(value: Number?): JsonValue = wrapValue(value)
+        operator fun invoke(value: Boolean?): JsonValue = wrapValue(value)
     }
 
-    protected fun throwError(e: JsonValueException): Nothing {
-        throw JsonValueException(
-            message = "JSON error",
-            path = e.path ?: path,
-            cause = e
-        )
+    protected inline fun throwError(e: JsonValueException): Nothing {
+        throw e
+    }
+
+    internal inline fun throwInvalidType(expected: String): Nothing {
+        throw JsonValueException("Element ${this::class.simpleName} is not $expected", path)
     }
 
     abstract fun copyWithPath(path: String): JsonValue
@@ -55,138 +45,79 @@ sealed class JsonValue(internal val path: String) {
         )
     }
 
-    open operator fun set(key: String, value: JsonValue) {
-        throwError(JsonValueException("Element ${this::class.simpleName} is not an object", path))
-    }
+    open operator fun set(key: String, value: JsonValue): Unit = throwInvalidType("object")
+    open operator fun set(index: Int, value: JsonValue): Unit = throwInvalidType("array")
+    open operator fun plusAssign(value: JsonValue): Unit = throwInvalidType("array")
 
-    @Suppress("UNUSED_PARAMETER")
-    operator fun set(key: String, value: Nothing?) {
-        this[key] = JsonNull(path.expandPath(key))
-    }
+    open val size: Int get() = throwInvalidType("object or array")
 
-    operator fun set(key: String, value: String?) {
-        this[key] = wrap(value, path.expandPath(key))
-    }
+    open fun <T> valueOrNull(): T? = TODO("not implemented")
+    open fun <T> value(): T = TODO("not implemented")
 
-    operator fun set(key: String, value: Number?) {
-        this[key] = wrap(value, path.expandPath(key))
-    }
+    open val isNull: Boolean get() = false
+    open val orNull: JsonValue? get() = this
 
-    operator fun set(key: String, value: Boolean?) {
-        this[key] = wrap(value, path.expandPath(key))
-    }
+    open val stringOrNull: String? get() = null
+    open val string: String get() = stringOrNull ?: throwInvalidType("string")
 
-    open operator fun set(index: Int, value: JsonValue) {
-        throwError(JsonValueException("Element ${this::class.simpleName} is not an array", path))
-    }
+    open val intOrNull: Int? get() = null
+    open val int: Int get() = intOrNull ?: throwInvalidType("int")
 
-    @Suppress("UNUSED_PARAMETER")
-    operator fun set(index: Int, value: Nothing?) {
-        this[index] = JsonNull(path.expandPath(index))
-    }
+    open val longOrNull: Long? get() = null
+    open val long: Long get() = longOrNull ?: throwInvalidType("long")
 
-    operator fun set(index: Int, value: String?) {
-        this[index] = wrap(value, path.expandPath(index))
-    }
+    open val doubleOrNull: Double? get() = null
+    open val double: Double get() = doubleOrNull ?: throwInvalidType("double")
 
-    operator fun set(index: Int, value: Number?) {
-        this[index] = wrap(value, path.expandPath(index))
-    }
+    open val boolOrNull: Boolean? get() = null
+    open val bool: Boolean get() = boolOrNull ?: throwInvalidType("bool")
 
-    operator fun set(index: Int, value: Boolean?) {
-        this[index] = wrap(value, path.expandPath(index))
-    }
+    open val arrayOrNull: List<JsonValue>? get() = null
+    open val array: List<JsonValue> get() = arrayOrNull ?: throwInvalidType("array")
 
-    open operator fun plusAssign(value: JsonValue) {
-        throwError(JsonValueException("Element ${this::class.simpleName} is not an array", path))
-    }
-
-    @Suppress("UNUSED_PARAMETER")
-    operator fun plusAssign(value: Nothing?) {
-        this += JsonNull(path.expandPath(size))
-    }
-
-    operator fun plusAssign(value: String?) {
-        this += wrap(value, path.expandPath(size))
-    }
-
-    operator fun plusAssign(value: Number?) {
-        this += wrap(value, path.expandPath(size))
-    }
-
-    operator fun plusAssign(value: Boolean?) {
-        this += wrap(value, path.expandPath(size))
-    }
-
-    open val size: Int
-        get() = throwError(JsonValueException("Element ${this::class.simpleName} is not an object or array", path))
-
-    open fun <T> valueOrNull(): T? {
-        TODO("not implemented")
-    }
-
-    open fun <T> value(): T {
-        TODO("not implemented")
-    }
-
-    open val isNull: Boolean
-        get() = false
-
-    open val orNull: JsonValue?
-        get() = this
-
-    open val stringOrNull: String?
-        get() = null
-
-    open val string: String
-        get() = stringOrNull
-            ?: throwError(JsonValueException("Element ${this::class.simpleName} is not a string", path))
-
-    open val intOrNull: Int?
-        get() = null
-
-    open val int: Int
-        get() = intOrNull
-            ?: throwError(JsonValueException("Element ${this::class.simpleName} is not an int", path))
-
-    open val longOrNull: Long?
-        get() = null
-
-    open val long: Long
-        get() = longOrNull
-            ?: throwError(JsonValueException("Element ${this::class.simpleName} is not a long", path))
-
-    open val doubleOrNull: Double?
-        get() = null
-
-    open val double: Double
-        get() = doubleOrNull
-            ?: throwError(JsonValueException("Element ${this::class.simpleName} is not a double", path))
-
-    open val boolOrNull: Boolean?
-        get() = null
-
-    open val bool: Boolean
-        get() = boolOrNull
-            ?: throwError(JsonValueException("Element ${this::class.simpleName} is not a bool", path))
-
-    open val arrayOrNull: List<JsonValue>?
-        get() = null
-
-    open val array: List<JsonValue>
-        get() = arrayOrNull
-            ?: throwError(JsonValueException("Element ${this::class.simpleName} is not an array", path))
-
-    open val objOrNull: Map<String, JsonValue>?
-        get() = null
-
-    open val obj: Map<String, JsonValue>
-        get() = objOrNull
-            ?: throwError(JsonValueException("Element ${this::class.simpleName} is not an object", path))
+    open val objOrNull: Map<String, JsonValue>? get() = null
+    open val obj: Map<String, JsonValue> get() = objOrNull ?: throwInvalidType("object")
 
     fun toJsonString(prettyPrint: Boolean = false, adapter: JsonAdapter = DefaultJsonAdapter): String {
         return adapter.stringify(this, prettyPrint)
     }
+
+
+    // "extension" operators (embedded here because auto-import doesn't work great for operators)
+    operator fun set(key: String, value: Nothing?) = set(key, JsonNull(path.expandPath(key)))
+    operator fun set(key: String, value: String?) = set(key, wrapValue(value, path.expandPath(key)))
+    operator fun set(key: String, value: Number?) = set(key, wrapValue(value, path.expandPath(key)))
+    operator fun set(key: String, value: Boolean?) = set(key, wrapValue(value, path.expandPath(key)))
+    @JvmName("setValues")
+    operator fun set(key: String, value: Collection<JsonValue?>?) = set(key, wrapArray(value, path.expandPath(key)))
+    @JvmName("setStrings")
+    operator fun set(key: String, value: Collection<String?>?) = set(key, wrapArray(value, path.expandPath(key)))
+    @JvmName("setNumbers")
+    operator fun set(key: String, value: Collection<Number?>?) = set(key, wrapArray(value, path.expandPath(key)))
+
+    operator fun set(index: Int, value: Nothing?) = set(index, JsonNull(path.expandPath(index)))
+    operator fun set(index: Int, value: String?) = set(index, wrapValue(value, path.expandPath(index)))
+    operator fun set(index: Int, value: Number?) = set(index, wrapValue(value, path.expandPath(index)))
+    operator fun set(index: Int, value: Boolean?) = set(index, wrapValue(value, path.expandPath(index)))
+
+    @JvmName("setValues")
+    operator fun set(index: Int, value: Collection<JsonValue>?) = set(index, wrapArray(value, path.expandPath(index)))
+    @JvmName("setStrings")
+    operator fun set(index: Int, value: Collection<String?>?)= set(index, wrapArray(value, path.expandPath(index)))
+    @JvmName("setNumbers")
+    operator fun set(index: Int, value: Collection<Number?>?)= set(index, wrapArray(value, path.expandPath(index)))
+
+    operator fun plusAssign(value: Nothing?) = plusAssign(JsonNull(path.expandPath(size)))
+    operator fun plusAssign(value: String?) = plusAssign(wrapValue(value, path.expandPath(size)))
+    operator fun plusAssign(value: Number?) = plusAssign(wrapValue(value, path.expandPath(size)))
+    operator fun plusAssign(value: Boolean?) = plusAssign(wrapValue(value, path.expandPath(size)))
+
+    @JvmName("plusValues")
+    operator fun plusAssign(value: Collection<JsonValue>?) = plusAssign(wrapArray(value, path.expandPath(size)))
+    @JvmName("plusStrings")
+    operator fun plusAssign(value: Collection<String?>?) = plusAssign(wrapArray(value, path.expandPath(size)))
+    @JvmName("plusNumbers")
+    operator fun plusAssign(value: Collection<Number?>?) = plusAssign(wrapArray(value, path.expandPath(size)))
 }
 
 
@@ -204,13 +135,18 @@ class JsonObject(
     internal val content: MutableMap<String, JsonValue>,
     path: String = PATH_ROOT_MARKER
 ) : JsonValue(path) {
-    override fun copyWithPath(path: String) = JsonObject(content, path)
+    override fun copyWithPath(path: String) = JsonObject(
+        content.mapValuesTo(mutableMapOf()) { it.value.copyWithPath(path.expandPath(it.key)) },
+        path
+    )
 
     override val size: Int
         get() = content.size
 
     override operator fun get(key: String): JsonValue {
-        return content.getOrPut(key) { JsonEmpty(path.expandPath(key)) }
+        return content.getOrPut(key) {
+            JsonEmpty(path.expandPath(key)) { JsonValueException("No such key: $key in object", path) }
+        }
     }
 
     override operator fun set(key: String, value: JsonValue) {
@@ -230,20 +166,26 @@ class JsonArray(
     internal val content: MutableList<JsonValue>,
     path: String = PATH_ROOT_MARKER
 ) : JsonValue(path) {
-    override fun copyWithPath(path: String) = JsonArray(content, path)
+    override fun copyWithPath(path: String) = JsonArray(
+        content.mapIndexedTo(mutableListOf()) { index, item -> item.copyWithPath(path.expandPath(index)) },
+        path
+    )
 
     override val size: Int
         get() = content.size
 
     override operator fun get(index: Int): JsonValue {
-        return if (index >= 0 && index < content.size) {
-            content[index]
-        } else {
-            return JsonError(
-                JsonValueException("Index $index out of bounds (size: ${content.size})", path),
-                path.expandPath(index)
-            )
+        when {
+            index < 0 -> throwError(JsonValueException("Invalid array index $index", path))
+            index >= content.size -> {
+                for (i in content.size..index) {
+                    content.add(JsonEmpty("$path > [$i]") {
+                        JsonValueException("Index $index out of bounds (size: ${content.size})", path)
+                    })
+                }
+            }
         }
+        return content[index]
     }
 
     override operator fun set(index: Int, value: JsonValue) {
@@ -323,8 +265,8 @@ class JsonPrimitive(
 class JsonError(private val e: JsonValueException, path: String = PATH_ROOT_MARKER) : JsonValue(path) {
     override fun copyWithPath(path: String) = JsonError(e, path)
 
-    override operator fun get(key: String) = JsonError(e, path.expandPath(key))
-    override operator fun get(index: Int) = JsonError(e, path.expandPath(index))
+    override operator fun get(key: String) = this
+    override operator fun get(index: Int) = this
 
     override fun <T> valueOrNull(): T? = null
     override fun <T> value(): T = throwError(e)
@@ -342,11 +284,13 @@ class JsonError(private val e: JsonValueException, path: String = PATH_ROOT_MARK
 }
 
 class JsonEmpty(
-    path: String = PATH_ROOT_MARKER
+    path: String = PATH_ROOT_MARKER,
+    private val pendingException: (() -> JsonValueException)? = null
 ) : JsonValue(path) {
     internal var wrapped: JsonValue? = null
+    private inline val defaultException get() = JsonValueException("Json element is empty", path)
 
-    override fun copyWithPath(path: String) = TODO()
+    override fun copyWithPath(path: String) = wrapped?.copyWithPath(path) ?: JsonEmpty(path, pendingException)
 
     override val size: Int
         get() = wrapped?.size ?: 0
@@ -355,7 +299,7 @@ class JsonEmpty(
         if (wrapped == null) {
             wrapped = JsonObject(mutableMapOf(), path)
         } else if (wrapped !is JsonObject) {
-            throwError(JsonValueException("Element ${wrapped!!::class.simpleName} is not an object", path))
+            throwInvalidType("object")
         }
 
         return wrapped!!
@@ -365,7 +309,7 @@ class JsonEmpty(
         if (wrapped == null) {
             wrapped = JsonArray(mutableListOf(), path)
         } else if (wrapped !is JsonArray) {
-            throwError(JsonValueException("Element ${wrapped!!::class.simpleName} is not an array", path))
+            throwInvalidType("array")
         }
 
         return wrapped!!
@@ -391,9 +335,18 @@ class JsonEmpty(
         materializeAsArray() += value
     }
 
-    override val isNull: Boolean
-        get() = wrapped == null
+    override val isNull: Boolean get() = wrapped == null
+    override val orNull: JsonValue? get() = wrapped
 
-    override val orNull: JsonValue?
-        get() = wrapped
+    override val string: String get() = throwError(pendingException?.invoke() ?: defaultException)
+    override val int: Int get() = throwError(pendingException?.invoke() ?: defaultException)
+    override val long: Long get() = throwError(pendingException?.invoke() ?: defaultException)
+    override val double: Double get() = throwError(pendingException?.invoke() ?: defaultException)
+    override val bool: Boolean get() = throwError(pendingException?.invoke() ?: defaultException)
+
+    override val arrayOrNull: List<JsonValue>? get() = wrapped?.arrayOrNull
+    override val array: List<JsonValue> get() = wrapped?.array ?: throwError(pendingException?.invoke() ?: defaultException)
+
+    override val objOrNull: Map<String, JsonValue>? get() = wrapped?.objOrNull
+    override val obj: Map<String, JsonValue> get() = wrapped?.obj ?: throwError(pendingException?.invoke() ?: defaultException)
 }

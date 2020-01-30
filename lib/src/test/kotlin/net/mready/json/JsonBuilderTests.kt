@@ -134,30 +134,4 @@ class JsonBuilderTests {
 
         assertEquals("""[[1]]""", adapter.stringify(json))
     }
-
-    @Test
-    fun test() {
-        val json = JsonValue()
-        json["null"] = null
-        json["hello"] = 123
-        json["obj"]["sub"] = "1234"
-        json["arr"][1] = true
-        json["arr2"] += 1
-        json["arr2"] += 2
-
-        assertEquals(true, json["null"].isNull)
-        assertEquals(123, json["hello"].int)
-        assertEquals("1234", json["obj"]["sub"].string)
-        assertEquals(true, json["arr"][0].isNull)
-        assertEquals(true, json["arr"][1].bool)
-        assertEquals(1, json["arr2"][0].int)
-        assertEquals(2, json["arr2"][1].int)
-
-        println(json.toJsonString(prettyPrint = true))
-
-        assertEquals(
-            """{"null":null,"hello":123,"obj":{"sub":"1234"},"arr":[null,true],"arr2":[1,2]}""",
-            adapter.stringify(json)
-        )
-    }
 }
