@@ -4,7 +4,8 @@ package net.mready.apiclient
 
 import net.mready.json.JsonAdapter
 import net.mready.json.JsonValue
-import net.mready.json.DefaultJsonAdapter
+import net.mready.json.defaultJsonAdapter
+import net.mready.json.kotlinx.KotlinxJsonAdapter
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -27,7 +28,7 @@ enum class Method {
 open class ApiClient(
     private val baseUrl: String = "",
     protected val httpClient: OkHttpClient = OkHttpClient(),
-    protected val jsonAdapter: JsonAdapter = DefaultJsonAdapter
+    protected val jsonAdapter: JsonAdapter = KotlinxJsonAdapter()
 ) {
 
     fun buildUrl(endpoint: String, query: Map<String, Any?>? = null): String {

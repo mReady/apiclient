@@ -1,8 +1,12 @@
-package net.mready.json
+package net.mready.json.kotlinx
 
 import kotlinx.serialization.*
 import kotlinx.serialization.internal.*
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonInput
+import kotlinx.serialization.modules.getContextualOrDefault
+import net.mready.json.*
+import net.mready.json.PATH_ROOT_MARKER
 
 private typealias KJsonElement = kotlinx.serialization.json.JsonElement
 private typealias KJsonNull = kotlinx.serialization.json.JsonNull
@@ -10,21 +14,56 @@ private typealias KJsonLiteral = kotlinx.serialization.json.JsonLiteral
 private typealias KJsonObject = kotlinx.serialization.json.JsonObject
 private typealias KJsonArray = kotlinx.serialization.json.JsonArray
 
-fun JsonValue.Companion.from(jsonElement: KJsonElement): JsonValue {
-    return convertJsonElement(jsonElement)
+fun JsonValue.Companion.from(jsonElement: KJsonElement): JsonValue = fromJsonElement(jsonElement)
+fun JsonValue.toJsonElement(): JsonElement = toJsonElement(this)
+
+@JvmName("convertToJsonElement")
+private fun toJsonElement(value: JsonValue): JsonElement {
+    return when (value) {
+        is JsonNull -> KJsonNull
+        is JsonPrimitive -> when (value.type) {
+            JsonPrimitive.Type.NUMBER -> KJsonLiteral(
+                (value.longOrNull ?: value.double) as Number
+            )
+            JsonPrimitive.Type.BOOLEAN -> KJsonLiteral(
+                value.bool
+            )
+            JsonPrimitive.Type.STRING, JsonPrimitive.Type.UNKNOWN -> KJsonLiteral(
+                value.string
+            )
+        }
+        is JsonObject -> KJsonObject(value.content.mapValues {
+            toJsonElement(
+                it.value
+            )
+        })
+        is JsonArray -> KJsonArray(value.content.map {
+            toJsonElement(
+                it
+            )
+        })
+        is JsonEmpty -> value.wrapped?.let {
+            toJsonElement(
+                it
+            )
+        } ?: KJsonNull
+        is JsonReference -> TODO()
+        is JsonError -> TODO()
+    }
 }
 
-private fun convertJsonElement(element: KJsonElement, path: String = PATH_ROOT_MARKER): JsonValue {
+@JvmName("convertFromJsonElement")
+private fun fromJsonElement(element: KJsonElement, path: String = PATH_ROOT_MARKER): JsonValue {
     return when (element) {
         is KJsonObject -> {
             val content = element.content.mapValuesTo(mutableMapOf()) {
-                convertJsonElement(it.value, path.expandPath(it.key))
+                fromJsonElement(it.value, path.expandPath(it.key))
             }
             JsonObject(content)
         }
         is KJsonArray -> {
             val content = element.content.mapIndexedTo(mutableListOf()) { index, item ->
-                convertJsonElement(item, path.expandPath(index))
+                fromJsonElement(item, path.expandPath(index))
             }
             JsonArray(content)
         }
@@ -37,36 +76,42 @@ private fun convertJsonElement(element: KJsonElement, path: String = PATH_ROOT_M
     }
 }
 
-
+@Serializer(forClass = JsonValue::class)
 object JsonValueSerializer : KSerializer<JsonValue> {
     override val descriptor: SerialDescriptor = object : SerialClassDescImpl("JsonValueSerializer") {
         override val kind: SerialKind get() = PolymorphicKind.SEALED
     }
 
+    @UseExperimental(ImplicitReflectionSerializer::class)
     override fun serialize(encoder: Encoder, obj: JsonValue) {
         when (obj) {
             is JsonPrimitive -> encoder.encodeSerializableValue(JsonPrimitiveSerializer, obj)
             is JsonObject -> encoder.encodeSerializableValue(JsonObjectSerializer, obj)
             is JsonArray -> encoder.encodeSerializableValue(JsonArraySerializer, obj)
             is JsonNull -> encoder.encodeSerializableValue(JsonNullSerializer, obj)
+            is JsonReference -> encoder.encodeSerializableValue(
+                encoder.context.getContextualOrDefault(obj.value),
+                obj.value
+            )
             is JsonEmpty -> obj.wrapped?.let {
-                serialize(
-                    encoder,
-                    it
-                )
-            } ?: serialize(encoder, JsonNull(obj.path))
+                serialize(encoder, it)
+            } ?: serialize(
+                encoder,
+                JsonNull(obj.path)
+            )
         }
     }
 
     override fun deserialize(decoder: Decoder): JsonValue {
         val input = decoder as JsonInput
-        return convertJsonElement(input.decodeJson())
+        return fromJsonElement(input.decodeJson())
     }
 }
 
 private object JsonObjectSerializer : KSerializer<JsonObject> {
     override val descriptor: SerialDescriptor =
-        NamedMapClassDescriptor("JsonObject", StringSerializer.descriptor,
+        NamedMapClassDescriptor(
+            "JsonObject", StringSerializer.descriptor,
             JsonValueSerializer.descriptor
         )
 
@@ -92,7 +137,11 @@ private object JsonArraySerializer : KSerializer<JsonArray> {
     }
 
     override fun deserialize(decoder: Decoder): JsonArray {
-        return JsonArray(ArrayListSerializer(JsonValueSerializer).deserialize(decoder).toMutableList())
+        return JsonArray(
+            ArrayListSerializer(JsonValueSerializer).deserialize(
+                decoder
+            ).toMutableList()
+        )
     }
 }
 
@@ -126,6 +175,9 @@ private object JsonPrimitiveSerializer : KSerializer<JsonPrimitive> {
     }
 
     override fun deserialize(decoder: Decoder): JsonPrimitive {
-        return JsonPrimitive(decoder.decodeString(), JsonPrimitive.Type.UNKNOWN)
+        return JsonPrimitive(
+            decoder.decodeString(),
+            JsonPrimitive.Type.UNKNOWN
+        )
     }
 }

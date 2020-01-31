@@ -1,42 +1,23 @@
 package net.mready.json
 
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonConfiguration
-import java.lang.RuntimeException
+import net.mready.json.kotlinx.KotlinxJsonAdapter
+import kotlin.reflect.KClass
 
-class JsonParseException(message: String, cause: Throwable): RuntimeException(message, cause)
+class JsonParseException(message: String, cause: Throwable) : RuntimeException(message, cause)
 
 interface JsonAdapter {
     fun parse(string: String): JsonValue
     fun stringify(json: JsonValue, prettyPrint: Boolean = false): String
+
+    @ExperimentalUserTypes
+    fun <T : Any> fromJson(cls: KClass<T>, json: JsonValue): T
+
+    @ExperimentalUserTypes
+    fun toJson(value: Any?): JsonValue
 }
 
-object DefaultJsonAdapter : JsonAdapter {
-    override fun parse(string: String): JsonValue {
-        val jsonString = string.trim()
-        if (jsonString.isEmpty()) {
-            return JsonValue()
-        }
+internal var defaultJsonAdapter: JsonAdapter = KotlinxJsonAdapter()
 
-        if (!jsonString.startsWith('{') && !jsonString.startsWith('[')) {
-            return JsonPrimitive(jsonString, JsonPrimitive.Type.UNKNOWN)
-        }
-
-        try {
-            @Suppress("EXPERIMENTAL_API_USAGE")
-            return Json.parse(JsonValueSerializer, jsonString)
-        } catch (e: Throwable) {
-            throw JsonParseException(e.message ?: "Unable to parse JSON", e)
-        }
-    }
-
-    override fun stringify(json: JsonValue, prettyPrint: Boolean): String {
-        @Suppress("EXPERIMENTAL_API_USAGE")
-        val config = JsonConfiguration(
-            prettyPrint = prettyPrint,
-            //TODO: What is this for?
-            useArrayPolymorphism = true
-        )
-        return Json(config).stringify(JsonValueSerializer, json)
-    }
+fun JsonValue.Companion.setDefaultAdapter(adapter: JsonAdapter) {
+    defaultJsonAdapter = adapter
 }

@@ -11,9 +11,9 @@ internal fun String.expandPath(key: String) = "$this > $key"
 @PublishedApi
 internal fun String.expandPath(index: Int) = "$this > [$index]"
 
-internal inline fun <T> T?.jsonNullOr(block: (T) -> JsonValue): JsonValue {
+internal inline fun <T> T?.jsonNullOr(path: String, block: (T) -> JsonValue): JsonValue {
     return if (this == null) {
-        JsonNull()
+        JsonNull(path)
     } else {
         block(this)
     }
@@ -31,7 +31,7 @@ internal inline fun <reified T> wrapValue(value: T, path: String = PATH_ROOT_MAR
 }
 
 internal fun wrapArray(collection: Collection<Any?>?, path: String): JsonValue {
-    return collection.jsonNullOr {
+    return collection.jsonNullOr(path) {
         JsonArray(
             it.mapIndexedTo(mutableListOf()) { index, item -> wrapValue(item, path.expandPath(index)) },
             path

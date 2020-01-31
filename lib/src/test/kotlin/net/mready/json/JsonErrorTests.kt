@@ -1,10 +1,11 @@
 package net.mready.json
 
+import net.mready.json.kotlinx.KotlinxJsonAdapter
 import org.junit.Test
 import kotlin.test.assertEquals
 
 class JsonErrorTests {
-    private val adapter: JsonAdapter = DefaultJsonAdapter
+    private val adapter: JsonAdapter = KotlinxJsonAdapter()
 
     @Test
     fun primitiveAsStructure() {

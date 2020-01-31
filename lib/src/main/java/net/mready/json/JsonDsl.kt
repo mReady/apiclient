@@ -1,3 +1,5 @@
+@file:Suppress("UNUSED_PARAMETER", "unused")
+
 package net.mready.json
 
 
@@ -28,7 +30,7 @@ class JsonObjectDsl(path: String = PATH_ROOT_MARKER) : JsonDsl(path) {
     val obj: JsonValue = JsonObject(mutableMapOf(), path)
 
     infix fun String.value(value: Nothing?) {
-        obj[this] = value
+        obj[this] = null
     }
 
     infix fun String.value(value: String?) {
@@ -44,7 +46,7 @@ class JsonObjectDsl(path: String = PATH_ROOT_MARKER) : JsonDsl(path) {
     }
 
     infix fun String.value(value: JsonValue?) {
-        obj[this] = value ?: JsonNull(path)
+        obj[this] = value
     }
 
     inline infix fun String.jsonArray(block: JsonArrayDsl.() -> Unit) {
@@ -82,7 +84,7 @@ class JsonArrayDsl(path: String = PATH_ROOT_MARKER) : JsonDsl(path) {
     }
 
     fun emit(value: JsonValue?) {
-        array += value ?: JsonNull(path.expandPath(array.size))
+        array += value
     }
 
     inline fun <T> Collection<T>.emitEach(block: (T) -> JsonValue) {

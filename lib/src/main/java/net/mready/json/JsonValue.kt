@@ -2,20 +2,25 @@
 
 package net.mready.json
 
+import kotlinx.serialization.Serializable
+import net.mready.json.kotlinx.JsonValueSerializer
+
 class JsonValueException(
     message: String,
     val path: String? = null,
     cause: Throwable? = null
 ) : RuntimeException("$message ${path?.let { " (at $path)" }.orEmpty()}", cause)
 
+@Serializable(with = JsonValueSerializer::class)
 sealed class JsonValue(internal val path: String) {
     companion object {
-        fun parse(string: String, adapter: JsonAdapter = DefaultJsonAdapter) = adapter.parse(string)
+        fun parse(string: String, adapter: JsonAdapter = defaultJsonAdapter) = adapter.parse(string)
 
         operator fun invoke(): JsonValue = JsonEmpty()
 
         @Suppress("UNUSED_PARAMETER")
         operator fun invoke(value: Nothing?): JsonValue = JsonNull()
+
         operator fun invoke(value: String?): JsonValue = wrapValue(value)
         operator fun invoke(value: Number?): JsonValue = wrapValue(value)
         operator fun invoke(value: Boolean?): JsonValue = wrapValue(value)
@@ -45,14 +50,11 @@ sealed class JsonValue(internal val path: String) {
         )
     }
 
-    open operator fun set(key: String, value: JsonValue): Unit = throwInvalidType("object")
-    open operator fun set(index: Int, value: JsonValue): Unit = throwInvalidType("array")
-    open operator fun plusAssign(value: JsonValue): Unit = throwInvalidType("array")
+    open operator fun set(key: String, value: JsonValue?): Unit = throwInvalidType("object")
+    open operator fun set(index: Int, value: JsonValue?): Unit = throwInvalidType("array")
+    open operator fun plusAssign(value: JsonValue?): Unit = throwInvalidType("array")
 
     open val size: Int get() = throwInvalidType("object or array")
-
-    open fun <T> valueOrNull(): T? = TODO("not implemented")
-    open fun <T> value(): T = TODO("not implemented")
 
     open val isNull: Boolean get() = false
     open val orNull: JsonValue? get() = this
@@ -78,20 +80,23 @@ sealed class JsonValue(internal val path: String) {
     open val objOrNull: Map<String, JsonValue>? get() = null
     open val obj: Map<String, JsonValue> get() = objOrNull ?: throwInvalidType("object")
 
-    fun toJsonString(prettyPrint: Boolean = false, adapter: JsonAdapter = DefaultJsonAdapter): String {
+    fun toJsonString(prettyPrint: Boolean = false, adapter: JsonAdapter = defaultJsonAdapter): String {
         return adapter.stringify(this, prettyPrint)
     }
 
-
     // "extension" operators (embedded here because auto-import doesn't work great for operators)
     operator fun set(key: String, value: Nothing?) = set(key, JsonNull(path.expandPath(key)))
+
     operator fun set(key: String, value: String?) = set(key, wrapValue(value, path.expandPath(key)))
     operator fun set(key: String, value: Number?) = set(key, wrapValue(value, path.expandPath(key)))
     operator fun set(key: String, value: Boolean?) = set(key, wrapValue(value, path.expandPath(key)))
+
     @JvmName("setValues")
     operator fun set(key: String, value: Collection<JsonValue?>?) = set(key, wrapArray(value, path.expandPath(key)))
+
     @JvmName("setStrings")
     operator fun set(key: String, value: Collection<String?>?) = set(key, wrapArray(value, path.expandPath(key)))
+
     @JvmName("setNumbers")
     operator fun set(key: String, value: Collection<Number?>?) = set(key, wrapArray(value, path.expandPath(key)))
 
@@ -102,10 +107,12 @@ sealed class JsonValue(internal val path: String) {
 
     @JvmName("setValues")
     operator fun set(index: Int, value: Collection<JsonValue>?) = set(index, wrapArray(value, path.expandPath(index)))
+
     @JvmName("setStrings")
-    operator fun set(index: Int, value: Collection<String?>?)= set(index, wrapArray(value, path.expandPath(index)))
+    operator fun set(index: Int, value: Collection<String?>?) = set(index, wrapArray(value, path.expandPath(index)))
+
     @JvmName("setNumbers")
-    operator fun set(index: Int, value: Collection<Number?>?)= set(index, wrapArray(value, path.expandPath(index)))
+    operator fun set(index: Int, value: Collection<Number?>?) = set(index, wrapArray(value, path.expandPath(index)))
 
     operator fun plusAssign(value: Nothing?) = plusAssign(JsonNull(path.expandPath(size)))
     operator fun plusAssign(value: String?) = plusAssign(wrapValue(value, path.expandPath(size)))
@@ -114,8 +121,10 @@ sealed class JsonValue(internal val path: String) {
 
     @JvmName("plusValues")
     operator fun plusAssign(value: Collection<JsonValue>?) = plusAssign(wrapArray(value, path.expandPath(size)))
+
     @JvmName("plusStrings")
     operator fun plusAssign(value: Collection<String?>?) = plusAssign(wrapArray(value, path.expandPath(size)))
+
     @JvmName("plusNumbers")
     operator fun plusAssign(value: Collection<Number?>?) = plusAssign(wrapArray(value, path.expandPath(size)))
 }
@@ -149,12 +158,14 @@ class JsonObject(
         }
     }
 
-    override operator fun set(key: String, value: JsonValue) {
+    override operator fun set(key: String, value: JsonValue?) {
         val childPath = path.expandPath(key)
-        if (value.path == childPath) {
-            content[key] = value
-        } else {
-            content[key] = value.copyWithPath(path.expandPath(key))
+        content[key] = jsonNullOr(childPath) {
+            if (it.path == childPath) {
+                it
+            } else {
+                it.copyWithPath(path.expandPath(key))
+            }
         }
     }
 
@@ -188,9 +199,9 @@ class JsonArray(
         return content[index]
     }
 
-    override operator fun set(index: Int, value: JsonValue) {
+    override operator fun set(index: Int, value: JsonValue?) {
         val childPath = path.expandPath(index)
-        val newValue = if (value.path == childPath) value else value.copyWithPath(childPath)
+        val newValue = jsonNullOr(path) { if (it.path == childPath) it else it.copyWithPath(childPath) }
 
         when {
             index < 0 -> throwError(JsonValueException("Invalid array index $index", path))
@@ -204,7 +215,7 @@ class JsonArray(
         }
     }
 
-    override operator fun plusAssign(value: JsonValue) {
+    override operator fun plusAssign(value: JsonValue?) {
         set(size, value)
     }
 
@@ -260,16 +271,15 @@ class JsonPrimitive(
         }
 }
 
-//class JsonComplex: JsonElement()
+class JsonReference(internal val value: Any, path: String = PATH_ROOT_MARKER) : JsonValue(path) {
+    override fun copyWithPath(path: String) = JsonReference(value, path)
+}
 
 class JsonError(private val e: JsonValueException, path: String = PATH_ROOT_MARKER) : JsonValue(path) {
     override fun copyWithPath(path: String) = JsonError(e, path)
 
     override operator fun get(key: String) = this
     override operator fun get(index: Int) = this
-
-    override fun <T> valueOrNull(): T? = null
-    override fun <T> value(): T = throwError(e)
 
     override val isNull: Boolean get() = true
     override val orNull: JsonValue? get() = null
@@ -287,6 +297,7 @@ class JsonEmpty(
     path: String = PATH_ROOT_MARKER,
     private val pendingException: (() -> JsonValueException)? = null
 ) : JsonValue(path) {
+    @PublishedApi
     internal var wrapped: JsonValue? = null
     private inline val defaultException get() = JsonValueException("Json element is empty", path)
 
@@ -319,7 +330,7 @@ class JsonEmpty(
         return materializeAsObject()[key]
     }
 
-    override operator fun set(key: String, value: JsonValue) {
+    override operator fun set(key: String, value: JsonValue?) {
         materializeAsObject()[key] = value
     }
 
@@ -327,11 +338,11 @@ class JsonEmpty(
         return materializeAsArray()[index]
     }
 
-    override operator fun set(index: Int, value: JsonValue) {
+    override operator fun set(index: Int, value: JsonValue?) {
         materializeAsArray()[index] = value
     }
 
-    override operator fun plusAssign(value: JsonValue) {
+    override operator fun plusAssign(value: JsonValue?) {
         materializeAsArray() += value
     }
 
@@ -345,8 +356,10 @@ class JsonEmpty(
     override val bool: Boolean get() = throwError(pendingException?.invoke() ?: defaultException)
 
     override val arrayOrNull: List<JsonValue>? get() = wrapped?.arrayOrNull
-    override val array: List<JsonValue> get() = wrapped?.array ?: throwError(pendingException?.invoke() ?: defaultException)
+    override val array: List<JsonValue>
+        get() = wrapped?.array ?: throwError(pendingException?.invoke() ?: defaultException)
 
     override val objOrNull: Map<String, JsonValue>? get() = wrapped?.objOrNull
-    override val obj: Map<String, JsonValue> get() = wrapped?.obj ?: throwError(pendingException?.invoke() ?: defaultException)
+    override val obj: Map<String, JsonValue>
+        get() = wrapped?.obj ?: throwError(pendingException?.invoke() ?: defaultException)
 }

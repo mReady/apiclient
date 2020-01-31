@@ -1,20 +1,12 @@
 package net.mready.json
 
+import net.mready.json.kotlinx.KotlinxJsonAdapter
 import org.junit.Test
 import org.junit.runners.Parameterized
 import kotlin.test.assertEquals
 
-//@RunWith(Parameterized::class)
 class JsonBuilderTests {
-    private val adapter: JsonAdapter = DefaultJsonAdapter
-
-    companion object {
-        @JvmStatic
-        @Parameterized.Parameters
-        fun data(): Array<Array<Any?>>? {
-            return Array(1000) { arrayOfNulls<Any>(0) }
-        }
-    }
+    private val adapter: JsonAdapter = KotlinxJsonAdapter()
 
     @Test
     fun buildSimpleObject() {

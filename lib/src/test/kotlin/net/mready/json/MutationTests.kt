@@ -1,5 +1,6 @@
 package net.mready.json
 
+import net.mready.json.kotlinx.KotlinxJsonAdapter
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -7,7 +8,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class MutationTests {
-    private val adapter: JsonAdapter = DefaultJsonAdapter
+    private val adapter: JsonAdapter = KotlinxJsonAdapter()
 
     @Test
     fun objectFromEmpty() {
