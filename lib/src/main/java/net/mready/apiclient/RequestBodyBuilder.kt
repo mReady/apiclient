@@ -10,7 +10,6 @@ import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
-import java.nio.file.Files
 
 fun jsonObject(block: JsonObjectBodyBuilder.() -> Unit): RequestBodyBuilder {
     return JsonObjectBodyBuilder().apply(block)
@@ -166,12 +165,11 @@ class MultiPartBodyBuilder : RequestBodyBuilder {
     }
 
     infix fun String.file(value: File) {
-        val mimeType = Files.probeContentType(value.toPath())
 
         val part = MultipartBody.Part.createFormData(
             this,
             value.name,
-            value.asRequestBody((mimeType ?: "application/octet-stream").toMediaType())
+            value.asRequestBody("application/octet-stream".toMediaType())
         )
         values.add(part)
     }
