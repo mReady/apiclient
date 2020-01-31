@@ -9,7 +9,7 @@ annotation class ExperimentalUserTypes
 inline fun <reified T : Any> JsonAdapter.fromJson(json: JsonValue): T = fromJson(T::class, json)
 
 @ExperimentalUserTypes
-fun JsonValue.Companion.wrap(value: Any?): JsonValue = value.jsonNullOr(PATH_ROOT_MARKER) { JsonReference(it) }
+fun JsonValue.Companion.wrap(value: Any?): JsonValue = jsonNullOr(value, PATH_ROOT_MARKER) { JsonReference(it) }
 
 @ExperimentalUserTypes
 inline fun <reified T: Any> JsonValue.valueOrNull(): T? = valueOrNull(T::class)

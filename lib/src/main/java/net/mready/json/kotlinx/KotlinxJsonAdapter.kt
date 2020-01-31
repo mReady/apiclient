@@ -3,11 +3,13 @@ package net.mready.json.kotlinx
 import kotlinx.serialization.ImplicitReflectionSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
+import kotlinx.serialization.modules.EmptyModule
+import kotlinx.serialization.modules.SerialModule
 import kotlinx.serialization.modules.getContextualOrDefault
 import net.mready.json.*
 import kotlin.reflect.KClass
 
-class KotlinxJsonAdapter : JsonAdapter {
+class KotlinxJsonAdapter(private val serialModule: SerialModule = EmptyModule) : JsonAdapter {
     @Suppress("EXPERIMENTAL_API_USAGE")
     private val jsonConfiguration = JsonConfiguration(
         prettyPrint = false,
@@ -26,7 +28,7 @@ class KotlinxJsonAdapter : JsonAdapter {
         }
 
         try {
-            return Json(jsonConfiguration).parse(JsonValueSerializer, jsonString)
+            return Json(jsonConfiguration, serialModule).parse(JsonValueSerializer, jsonString)
         } catch (e: Throwable) {
             throw JsonParseException(e.message ?: "Unable to parse JSON", e)
         }
@@ -34,18 +36,18 @@ class KotlinxJsonAdapter : JsonAdapter {
 
     override fun stringify(json: JsonValue, prettyPrint: Boolean): String {
         val config = jsonConfiguration.copy(prettyPrint = prettyPrint)
-        return Json(config).stringify(JsonValueSerializer, json)
+        return Json(config, serialModule).stringify(JsonValueSerializer, json)
     }
 
     @UseExperimental(ImplicitReflectionSerializer::class)
     @ExperimentalUserTypes
     override fun <T : Any> fromJson(cls: KClass<T>, json: JsonValue): T {
-        return Json(jsonConfiguration).fromJson(Json.context.getContextualOrDefault(cls), json.toJsonElement())
+        return Json(jsonConfiguration, serialModule).fromJson(Json.context.getContextualOrDefault(cls), json.toJsonElement())
     }
 
     @UseExperimental(ImplicitReflectionSerializer::class)
     @ExperimentalUserTypes
     override fun toJson(value: Any?): JsonValue {
-        return value?.let { JsonValue.from(Json(jsonConfiguration).toJson(value)) } ?: JsonNull()
+        return value?.let { JsonValue.from(Json(jsonConfiguration, serialModule).toJson(value)) } ?: JsonNull()
     }
 }

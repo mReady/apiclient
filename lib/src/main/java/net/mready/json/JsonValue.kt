@@ -154,17 +154,17 @@ class JsonObject(
 
     override operator fun get(key: String): JsonValue {
         return content.getOrPut(key) {
-            JsonEmpty(path.expandPath(key)) { JsonValueException("No such key: $key in object", path) }
+            JsonEmpty(path.expandPath(key)) { JsonValueException("No such key \"$key\" in object", path) }
         }
     }
 
     override operator fun set(key: String, value: JsonValue?) {
         val childPath = path.expandPath(key)
-        content[key] = jsonNullOr(childPath) {
+        content[key] = jsonNullOr(value, childPath) {
             if (it.path == childPath) {
                 it
             } else {
-                it.copyWithPath(path.expandPath(key))
+                it.copyWithPath(childPath)
             }
         }
     }
@@ -201,7 +201,7 @@ class JsonArray(
 
     override operator fun set(index: Int, value: JsonValue?) {
         val childPath = path.expandPath(index)
-        val newValue = jsonNullOr(path) { if (it.path == childPath) it else it.copyWithPath(childPath) }
+        val newValue = jsonNullOr(value, path) { if (it.path == childPath) it else it.copyWithPath(childPath) }
 
         when {
             index < 0 -> throwError(JsonValueException("Invalid array index $index", path))
