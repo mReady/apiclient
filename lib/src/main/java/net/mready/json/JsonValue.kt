@@ -271,8 +271,8 @@ class JsonPrimitive(
         }
 }
 
-class JsonReference(internal val value: Any, path: String = PATH_ROOT_MARKER) : JsonValue(path) {
-    override fun copyWithPath(path: String) = JsonReference(value, path)
+class JsonReference(internal val content: Any, path: String = PATH_ROOT_MARKER) : JsonValue(path) {
+    override fun copyWithPath(path: String) = JsonReference(content, path)
 }
 
 class JsonError(private val e: JsonValueException, path: String = PATH_ROOT_MARKER) : JsonValue(path) {

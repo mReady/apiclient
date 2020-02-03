@@ -90,8 +90,8 @@ object JsonValueSerializer : KSerializer<JsonValue> {
             is JsonArray -> encoder.encodeSerializableValue(JsonArraySerializer, obj)
             is JsonNull -> encoder.encodeSerializableValue(JsonNullSerializer, obj)
             is JsonReference -> encoder.encodeSerializableValue(
-                encoder.context.getContextualOrDefault(obj.value),
-                obj.value
+                encoder.context.getContextualOrDefault(obj.content),
+                obj.content
             )
             is JsonEmpty -> obj.wrapped?.let {
                 serialize(encoder, it)

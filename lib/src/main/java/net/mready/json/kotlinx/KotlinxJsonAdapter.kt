@@ -20,7 +20,7 @@ class KotlinxJsonAdapter(private val serialModule: SerialModule = EmptyModule) :
     override fun parse(string: String): JsonValue {
         val jsonString = string.trim()
         if (jsonString.isEmpty()) {
-            return JsonValue()
+            return JsonEmpty()
         }
 
         if (!jsonString.startsWith('{') && !jsonString.startsWith('[')) {

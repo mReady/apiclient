@@ -54,9 +54,9 @@ class MutationTests {
         json["obj"]["inner1"]["inner2"]["value"] = 1
 
         assertNotNull(json["obj"].objOrNull)
-        json["obj"].obj
+        assetSucceeds { json["obj"].obj }
         assertNotNull(json["obj"]["inner1"].objOrNull)
-        json["obj"]["inner1"].obj
+        assetSucceeds { json["obj"]["inner1"].obj }
         assertEquals(1, json["obj"]["inner1"]["inner2"]["value"].int)
 
         assertNull(json["obj"].arrayOrNull)
@@ -73,9 +73,9 @@ class MutationTests {
         json["arr"][0][0] = 1
 
         assertNotNull(json["arr"].arrayOrNull)
-        json["arr"].array
+        assetSucceeds { json["arr"].array }
         assertNotNull(json["arr"][0].arrayOrNull)
-        json["arr"][0].array
+        assetSucceeds { json["arr"][0].array }
         assertEquals(1, json["arr"][0][0].int)
 
         assertNull(json["arr"].objOrNull)

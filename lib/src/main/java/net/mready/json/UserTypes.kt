@@ -22,7 +22,7 @@ inline fun <reified T: Any> JsonValue.value(): T = value(T::class)
 fun <T: Any> JsonValue.valueOrNull(cls: KClass<T>): T? = when(this) {
     is JsonNull -> null
     is JsonError -> null
-    is JsonReference -> value as? T
+    is JsonReference -> content as? T
     is JsonArray, is JsonObject, is JsonPrimitive -> defaultJsonAdapter.fromJson(cls, this)
     is JsonEmpty -> wrapped?.valueOrNull(cls)
 }
