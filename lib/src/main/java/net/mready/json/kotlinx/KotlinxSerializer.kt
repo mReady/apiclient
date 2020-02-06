@@ -21,31 +21,19 @@ fun JsonValue.toJsonElement(): JsonElement = toJsonElement(this)
 private fun toJsonElement(value: JsonValue): JsonElement {
     return when (value) {
         is JsonNull -> KJsonNull
-        is JsonPrimitive -> when (value.type) {
-            JsonPrimitive.Type.NUMBER -> KJsonLiteral(
-                (value.longOrNull ?: value.double) as Number
-            )
-            JsonPrimitive.Type.BOOLEAN -> KJsonLiteral(
-                value.bool
-            )
-            JsonPrimitive.Type.STRING, JsonPrimitive.Type.UNKNOWN -> KJsonLiteral(
-                value.string
-            )
+        is JsonPrimitive -> when {
+            value.isNumber() -> KJsonLiteral((value.longOrNull ?: value.double) as Number)
+            value.isBool() -> KJsonLiteral(value.bool)
+            else -> KJsonLiteral(value.string)
         }
         is JsonObject -> KJsonObject(value.content.mapValues {
-            toJsonElement(
-                it.value
-            )
+            toJsonElement(it.value)
         })
         is JsonArray -> KJsonArray(value.content.map {
-            toJsonElement(
-                it
-            )
+            toJsonElement(it)
         })
         is JsonEmpty -> value.wrapped?.let {
-            toJsonElement(
-                it
-            )
+            toJsonElement(it)
         } ?: KJsonNull
         is JsonReference -> TODO()
         is JsonError -> TODO()
@@ -166,11 +154,11 @@ private object JsonPrimitiveSerializer : KSerializer<JsonPrimitive> {
     }
 
     override fun serialize(encoder: Encoder, obj: JsonPrimitive) {
-        when (obj.type) {
-            JsonPrimitive.Type.NUMBER -> obj.longOrNull?.let { encoder.encodeLong(it) }
+        when  {
+            obj.isNumber() -> obj.longOrNull?.let { encoder.encodeLong(it) }
                 ?: encoder.encodeDouble(obj.double)
-            JsonPrimitive.Type.BOOLEAN -> encoder.encodeBoolean(obj.bool)
-            JsonPrimitive.Type.STRING, JsonPrimitive.Type.UNKNOWN -> encoder.encodeString(obj.string)
+            obj.isBool() -> encoder.encodeBoolean(obj.bool)
+            else -> encoder.encodeString(obj.string)
         }
     }
 

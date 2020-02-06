@@ -234,6 +234,23 @@ class JsonPrimitive(
         STRING, NUMBER, BOOLEAN, UNKNOWN
     }
 
+    fun isBool(): Boolean = when (type) {
+        Type.BOOLEAN -> true
+        Type.UNKNOWN -> content == "true" || content == "false"
+        else -> false
+    }
+
+    fun isString(): Boolean = when (type) {
+        Type.STRING, Type.UNKNOWN -> true
+        else -> false
+    }
+
+    fun isNumber(): Boolean = when (type) {
+        Type.NUMBER -> true
+        Type.UNKNOWN -> content.toDoubleOrNull() != null
+        else -> false
+    }
+
     override val stringOrNull: String?
         get() = if (type == Type.STRING || type == Type.UNKNOWN) {
             content
@@ -264,7 +281,7 @@ class JsonPrimitive(
         }
 
     override val boolOrNull: Boolean?
-        get() = if (type == Type.BOOLEAN || type == Type.UNKNOWN) {
+        get() = if (isBool()) {
             content.toBoolean()
         } else {
             null
