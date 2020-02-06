@@ -7,12 +7,24 @@ import net.mready.json.kotlinx.JsonValueSerializer
 
 class JsonValueException(
     message: String,
-    val path: String? = null,
+    val path: JsonPath? = null,
     cause: Throwable? = null
 ) : RuntimeException("$message ${path?.let { " (at $path)" }.orEmpty()}", cause)
 
+inline class JsonPath(private val path: String) {
+    companion object {
+        @JvmStatic
+        val ROOT = JsonPath("[root]")
+    }
+
+    operator fun plus(key: String) = JsonPath("$path > $key")
+    operator fun plus(index: Int) = JsonPath("$path > [$index]")
+
+    override fun toString() = path
+}
+
 @Serializable(with = JsonValueSerializer::class)
-sealed class JsonValue(internal val path: String) {
+sealed class JsonValue(internal val path: JsonPath) {
     companion object {
         fun parse(string: String, adapter: JsonAdapter = defaultJsonAdapter) = adapter.parse(string)
 
@@ -34,19 +46,19 @@ sealed class JsonValue(internal val path: String) {
         throw JsonValueException("Element ${this::class.simpleName} is not $expected", path)
     }
 
-    abstract fun copyWithPath(path: String): JsonValue
+    abstract fun copyWithPath(path: JsonPath): JsonValue
 
     open operator fun get(key: String): JsonValue {
         return JsonError(
             JsonValueException("Element ${this::class.simpleName} is not an object", path),
-            path.expandPath(key)
+            path + key
         )
     }
 
     open operator fun get(index: Int): JsonValue {
         return JsonError(
             JsonValueException("Element ${this::class.simpleName} is not an array", path),
-            path.expandPath(index)
+            path + index
         )
     }
 
@@ -85,53 +97,53 @@ sealed class JsonValue(internal val path: String) {
     }
 
     // "extension" operators (embedded here because auto-import doesn't work great for operators)
-    operator fun set(key: String, value: Nothing?) = set(key, JsonNull(path.expandPath(key)))
+    operator fun set(key: String, value: Nothing?) = set(key, JsonNull(path + key))
 
-    operator fun set(key: String, value: String?) = set(key, wrapValue(value, path.expandPath(key)))
-    operator fun set(key: String, value: Number?) = set(key, wrapValue(value, path.expandPath(key)))
-    operator fun set(key: String, value: Boolean?) = set(key, wrapValue(value, path.expandPath(key)))
-
-    @JvmName("setValues")
-    operator fun set(key: String, value: Collection<JsonValue?>?) = set(key, wrapArray(value, path.expandPath(key)))
-
-    @JvmName("setStrings")
-    operator fun set(key: String, value: Collection<String?>?) = set(key, wrapArray(value, path.expandPath(key)))
-
-    @JvmName("setNumbers")
-    operator fun set(key: String, value: Collection<Number?>?) = set(key, wrapArray(value, path.expandPath(key)))
-
-    operator fun set(index: Int, value: Nothing?) = set(index, JsonNull(path.expandPath(index)))
-    operator fun set(index: Int, value: String?) = set(index, wrapValue(value, path.expandPath(index)))
-    operator fun set(index: Int, value: Number?) = set(index, wrapValue(value, path.expandPath(index)))
-    operator fun set(index: Int, value: Boolean?) = set(index, wrapValue(value, path.expandPath(index)))
+    operator fun set(key: String, value: String?) = set(key, wrapValue(value, path + key))
+    operator fun set(key: String, value: Number?) = set(key, wrapValue(value, path + key))
+    operator fun set(key: String, value: Boolean?) = set(key, wrapValue(value, path + key))
 
     @JvmName("setValues")
-    operator fun set(index: Int, value: Collection<JsonValue>?) = set(index, wrapArray(value, path.expandPath(index)))
+    operator fun set(key: String, value: Collection<JsonValue?>?) = set(key, wrapArray(value, path + key))
 
     @JvmName("setStrings")
-    operator fun set(index: Int, value: Collection<String?>?) = set(index, wrapArray(value, path.expandPath(index)))
+    operator fun set(key: String, value: Collection<String?>?) = set(key, wrapArray(value, path + key))
 
     @JvmName("setNumbers")
-    operator fun set(index: Int, value: Collection<Number?>?) = set(index, wrapArray(value, path.expandPath(index)))
+    operator fun set(key: String, value: Collection<Number?>?) = set(key, wrapArray(value, path + key))
 
-    operator fun plusAssign(value: Nothing?) = plusAssign(JsonNull(path.expandPath(size)))
-    operator fun plusAssign(value: String?) = plusAssign(wrapValue(value, path.expandPath(size)))
-    operator fun plusAssign(value: Number?) = plusAssign(wrapValue(value, path.expandPath(size)))
-    operator fun plusAssign(value: Boolean?) = plusAssign(wrapValue(value, path.expandPath(size)))
+    operator fun set(index: Int, value: Nothing?) = set(index, JsonNull(path + index))
+    operator fun set(index: Int, value: String?) = set(index, wrapValue(value, path + index))
+    operator fun set(index: Int, value: Number?) = set(index, wrapValue(value, path + index))
+    operator fun set(index: Int, value: Boolean?) = set(index, wrapValue(value, path + index))
+
+    @JvmName("setValues")
+    operator fun set(index: Int, value: Collection<JsonValue>?) = set(index, wrapArray(value, path + index))
+
+    @JvmName("setStrings")
+    operator fun set(index: Int, value: Collection<String?>?) = set(index, wrapArray(value, path + index))
+
+    @JvmName("setNumbers")
+    operator fun set(index: Int, value: Collection<Number?>?) = set(index, wrapArray(value, path + index))
+
+    operator fun plusAssign(value: Nothing?) = plusAssign(JsonNull(path + size))
+    operator fun plusAssign(value: String?) = plusAssign(wrapValue(value, path + size))
+    operator fun plusAssign(value: Number?) = plusAssign(wrapValue(value, path + size))
+    operator fun plusAssign(value: Boolean?) = plusAssign(wrapValue(value, path + size))
 
     @JvmName("plusValues")
-    operator fun plusAssign(value: Collection<JsonValue>?) = plusAssign(wrapArray(value, path.expandPath(size)))
+    operator fun plusAssign(value: Collection<JsonValue>?) = plusAssign(wrapArray(value, path + size))
 
     @JvmName("plusStrings")
-    operator fun plusAssign(value: Collection<String?>?) = plusAssign(wrapArray(value, path.expandPath(size)))
+    operator fun plusAssign(value: Collection<String?>?) = plusAssign(wrapArray(value, path + size))
 
     @JvmName("plusNumbers")
-    operator fun plusAssign(value: Collection<Number?>?) = plusAssign(wrapArray(value, path.expandPath(size)))
+    operator fun plusAssign(value: Collection<Number?>?) = plusAssign(wrapArray(value, path + size))
 }
 
 
-class JsonNull(path: String = PATH_ROOT_MARKER) : JsonValue(path) {
-    override fun copyWithPath(path: String) = JsonNull(path)
+class JsonNull(path: JsonPath = JsonPath.ROOT) : JsonValue(path) {
+    override fun copyWithPath(path: JsonPath) = JsonNull(path)
 
     override val isNull: Boolean
         get() = true
@@ -142,10 +154,10 @@ class JsonNull(path: String = PATH_ROOT_MARKER) : JsonValue(path) {
 
 class JsonObject(
     internal val content: MutableMap<String, JsonValue>,
-    path: String = PATH_ROOT_MARKER
+    path: JsonPath = JsonPath.ROOT
 ) : JsonValue(path) {
-    override fun copyWithPath(path: String) = JsonObject(
-        content.mapValuesTo(mutableMapOf()) { it.value.copyWithPath(path.expandPath(it.key)) },
+    override fun copyWithPath(path: JsonPath) = JsonObject(
+        content.mapValuesTo(mutableMapOf()) { it.value.copyWithPath(path + it.key) },
         path
     )
 
@@ -154,12 +166,12 @@ class JsonObject(
 
     override operator fun get(key: String): JsonValue {
         return content.getOrPut(key) {
-            JsonEmpty(path.expandPath(key)) { JsonValueException("No such key \"$key\" in object", path) }
+            JsonEmpty(path + key) { JsonValueException("No such key \"$key\" in object", path) }
         }
     }
 
     override operator fun set(key: String, value: JsonValue?) {
-        val childPath = path.expandPath(key)
+        val childPath = path + key
         content[key] = jsonNullOr(value, childPath) {
             if (it.path == childPath) {
                 it
@@ -175,10 +187,10 @@ class JsonObject(
 
 class JsonArray(
     internal val content: MutableList<JsonValue>,
-    path: String = PATH_ROOT_MARKER
+    path: JsonPath = JsonPath.ROOT
 ) : JsonValue(path) {
-    override fun copyWithPath(path: String) = JsonArray(
-        content.mapIndexedTo(mutableListOf()) { index, item -> item.copyWithPath(path.expandPath(index)) },
+    override fun copyWithPath(path: JsonPath) = JsonArray(
+        content.mapIndexedTo(mutableListOf()) { index, item -> item.copyWithPath(path + index) },
         path
     )
 
@@ -190,7 +202,7 @@ class JsonArray(
             index < 0 -> throwError(JsonValueException("Invalid array index $index", path))
             index >= content.size -> {
                 for (i in content.size..index) {
-                    content.add(JsonEmpty("$path > [$i]") {
+                    content.add(JsonEmpty(path + i) {
                         JsonValueException("Index $index out of bounds (size: ${content.size})", path)
                     })
                 }
@@ -200,7 +212,7 @@ class JsonArray(
     }
 
     override operator fun set(index: Int, value: JsonValue?) {
-        val childPath = path.expandPath(index)
+        val childPath = path + index
         val newValue = jsonNullOr(value, path) { if (it.path == childPath) it else it.copyWithPath(childPath) }
 
         when {
@@ -208,7 +220,7 @@ class JsonArray(
             index < content.size -> content[index] = newValue
             else -> {
                 for (i in content.size until index) {
-                    content.add(JsonEmpty("$path > [$i]"))
+                    content.add(JsonEmpty(path + i))
                 }
                 content.add(newValue)
             }
@@ -226,9 +238,9 @@ class JsonArray(
 class JsonPrimitive(
     internal val content: String,
     internal val type: Type,
-    path: String = PATH_ROOT_MARKER
+    path: JsonPath = JsonPath.ROOT
 ) : JsonValue(path) {
-    override fun copyWithPath(path: String) = JsonPrimitive(content, type, path)
+    override fun copyWithPath(path: JsonPath) = JsonPrimitive(content, type, path)
 
     enum class Type {
         STRING, NUMBER, BOOLEAN, UNKNOWN
@@ -288,12 +300,12 @@ class JsonPrimitive(
         }
 }
 
-class JsonReference(internal val content: Any, path: String = PATH_ROOT_MARKER) : JsonValue(path) {
-    override fun copyWithPath(path: String) = JsonReference(content, path)
+class JsonReference(internal val content: Any, path: JsonPath = JsonPath.ROOT) : JsonValue(path) {
+    override fun copyWithPath(path: JsonPath) = JsonReference(content, path)
 }
 
-class JsonError(private val e: JsonValueException, path: String = PATH_ROOT_MARKER) : JsonValue(path) {
-    override fun copyWithPath(path: String) = JsonError(e, path)
+class JsonError(private val e: JsonValueException, path: JsonPath = JsonPath.ROOT) : JsonValue(path) {
+    override fun copyWithPath(path: JsonPath) = JsonError(e, path)
 
     override operator fun get(key: String) = this
     override operator fun get(index: Int) = this
@@ -311,14 +323,14 @@ class JsonError(private val e: JsonValueException, path: String = PATH_ROOT_MARK
 }
 
 class JsonEmpty(
-    path: String = PATH_ROOT_MARKER,
+    path: JsonPath = JsonPath.ROOT,
     private val pendingException: (() -> JsonValueException)? = null
 ) : JsonValue(path) {
     @PublishedApi
     internal var wrapped: JsonValue? = null
     private inline val defaultException get() = JsonValueException("Json element is empty", path)
 
-    override fun copyWithPath(path: String) = wrapped?.copyWithPath(path) ?: JsonEmpty(path, pendingException)
+    override fun copyWithPath(path: JsonPath) = wrapped?.copyWithPath(path) ?: JsonEmpty(path, pendingException)
 
     override val size: Int
         get() = wrapped?.size ?: 0

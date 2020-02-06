@@ -6,7 +6,6 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonInput
 import kotlinx.serialization.modules.getContextualOrDefault
 import net.mready.json.*
-import net.mready.json.PATH_ROOT_MARKER
 
 private typealias KJsonElement = kotlinx.serialization.json.JsonElement
 private typealias KJsonNull = kotlinx.serialization.json.JsonNull
@@ -40,18 +39,17 @@ private fun toJsonElement(value: JsonValue): JsonElement {
     }
 }
 
-@JvmName("convertFromJsonElement")
-private fun fromJsonElement(element: KJsonElement, path: String = PATH_ROOT_MARKER): JsonValue {
+private fun fromJsonElement(element: KJsonElement, path: JsonPath = JsonPath.ROOT): JsonValue {
     return when (element) {
         is KJsonObject -> {
             val content = element.content.mapValuesTo(mutableMapOf()) {
-                fromJsonElement(it.value, path.expandPath(it.key))
+                fromJsonElement(it.value, path + it.key)
             }
             JsonObject(content)
         }
         is KJsonArray -> {
             val content = element.content.mapIndexedTo(mutableListOf()) { index, item ->
-                fromJsonElement(item, path.expandPath(index))
+                fromJsonElement(item, path + index)
             }
             JsonArray(content)
         }

@@ -3,8 +3,6 @@ package net.mready.json
 import net.mready.json.kotlinx.KotlinxJsonAdapter
 import org.junit.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class JsonTypesTests {
@@ -21,19 +19,19 @@ class JsonTypesTests {
         assertEquals(0, json.size)
 
         assertEquals(null, json.stringOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.string }
+        assertFailsOn(PATH_ROOT) { json.string }
 
         assertEquals(null, json.intOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.int }
+        assertFailsOn(PATH_ROOT) { json.int }
 
         assertEquals(null, json.longOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.long }
+        assertFailsOn(PATH_ROOT) { json.long }
 
         assertEquals(null, json.doubleOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.double }
+        assertFailsOn(PATH_ROOT) { json.double }
 
         assertEquals(null, json.boolOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.bool }
+        assertFailsOn(PATH_ROOT) { json.bool }
     }
 
     @Test
@@ -44,52 +42,52 @@ class JsonTypesTests {
         assertEquals(true, json.isNull)
         assertEquals(null, json.orNull)
 
-        assertFailsOn(PATH_ROOT_MARKER)  { json.size }
+        assertFailsOn(PATH_ROOT)  { json.size }
         assertTrue { json["test"] is JsonError }
         assertTrue { json[0] is JsonError }
 
         assertEquals(null, json.stringOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.string }
+        assertFailsOn(PATH_ROOT) { json.string }
 
         assertEquals(null, json.intOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.int }
+        assertFailsOn(PATH_ROOT) { json.int }
 
         assertEquals(null, json.longOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.long }
+        assertFailsOn(PATH_ROOT) { json.long }
 
         assertEquals(null, json.doubleOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.double }
+        assertFailsOn(PATH_ROOT) { json.double }
 
         assertEquals(null, json.boolOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.bool }
+        assertFailsOn(PATH_ROOT) { json.bool }
     }
 
     @Test
     fun errorJson() {
-        val json: JsonValue = JsonError(JsonValueException("test", PATH_ROOT_MARKER))
+        val json: JsonValue = JsonError(JsonValueException("test", JsonPath.ROOT))
 
         assertTrue { json is JsonError }
         assertEquals(true, json.isNull)
         assertEquals(null, json.orNull)
 
-        assertFailsOn(PATH_ROOT_MARKER)  { json.size }
+        assertFailsOn(PATH_ROOT)  { json.size }
         assertTrue { json["test"] is JsonError }
         assertTrue { json[0] is JsonError }
 
         assertEquals(null, json.stringOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.string }
+        assertFailsOn(PATH_ROOT) { json.string }
 
         assertEquals(null, json.intOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.int }
+        assertFailsOn(PATH_ROOT) { json.int }
 
         assertEquals(null, json.longOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.long }
+        assertFailsOn(PATH_ROOT) { json.long }
 
         assertEquals(null, json.doubleOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.double }
+        assertFailsOn(PATH_ROOT) { json.double }
 
         assertEquals(null, json.boolOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.bool }
+        assertFailsOn(PATH_ROOT) { json.bool }
     }
 
     @Test
@@ -101,7 +99,7 @@ class JsonTypesTests {
         assertEquals(false, json.isNull)
         assertEquals(json, json.orNull)
 
-        assertFailsOn(PATH_ROOT_MARKER)  { json.size }
+        assertFailsOn(PATH_ROOT)  { json.size }
         assertTrue { json["test"] is JsonError }
         assertTrue { json[0] is JsonError }
 
@@ -109,16 +107,16 @@ class JsonTypesTests {
         assertEquals(string, json.string)
 
         assertEquals(null, json.intOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.int }
+        assertFailsOn(PATH_ROOT) { json.int }
 
         assertEquals(null, json.longOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.long }
+        assertFailsOn(PATH_ROOT) { json.long }
 
         assertEquals(null, json.doubleOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.double }
+        assertFailsOn(PATH_ROOT) { json.double }
 
         assertEquals(null, json.boolOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.bool }
+        assertFailsOn(PATH_ROOT) { json.bool }
     }
 
     @Test
@@ -130,12 +128,12 @@ class JsonTypesTests {
         assertEquals(false, json.isNull)
         assertEquals(json, json.orNull)
 
-        assertFailsOn(PATH_ROOT_MARKER)  { json.size }
+        assertFailsOn(PATH_ROOT)  { json.size }
         assertTrue { json["test"] is JsonError }
         assertTrue { json[0] is JsonError }
 
         assertEquals(null, json.stringOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.string }
+        assertFailsOn(PATH_ROOT) { json.string }
 
         assertEquals(1, json.intOrNull)
         assertEquals(1, json.int)
@@ -147,7 +145,7 @@ class JsonTypesTests {
         assertEquals(1.0, json.double)
 
         assertEquals(null, json.boolOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.bool }
+        assertFailsOn(PATH_ROOT) { json.bool }
     }
 
     @Test
@@ -159,12 +157,12 @@ class JsonTypesTests {
         assertEquals(false, json.isNull)
         assertEquals(json, json.orNull)
 
-        assertFailsOn(PATH_ROOT_MARKER)  { json.size }
+        assertFailsOn(PATH_ROOT)  { json.size }
         assertTrue { json["test"] is JsonError }
         assertTrue { json[0] is JsonError }
 
         assertEquals(null, json.stringOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.string }
+        assertFailsOn(PATH_ROOT) { json.string }
 
         assertEquals(1, json.intOrNull)
         assertEquals(1, json.int)
@@ -176,7 +174,7 @@ class JsonTypesTests {
         assertEquals(1.0, json.double)
 
         assertEquals(null, json.boolOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.bool }
+        assertFailsOn(PATH_ROOT) { json.bool }
     }
 
     @Test
@@ -188,24 +186,24 @@ class JsonTypesTests {
         assertEquals(false, json.isNull)
         assertEquals(json, json.orNull)
 
-        assertFailsOn(PATH_ROOT_MARKER)  { json.size }
+        assertFailsOn(PATH_ROOT)  { json.size }
         assertTrue { json["test"] is JsonError }
         assertTrue { json[0] is JsonError }
 
         assertEquals(null, json.stringOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.string }
+        assertFailsOn(PATH_ROOT) { json.string }
 
         assertEquals(null, json.intOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.int }
+        assertFailsOn(PATH_ROOT) { json.int }
 
         assertEquals(null, json.longOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.long }
+        assertFailsOn(PATH_ROOT) { json.long }
 
         assertEquals(1.0, json.doubleOrNull)
         assertEquals(1.0, json.double)
 
         assertEquals(null, json.boolOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.bool }
+        assertFailsOn(PATH_ROOT) { json.bool }
     }
 
     @Test
@@ -222,19 +220,19 @@ class JsonTypesTests {
         assertTrue { json[0] is JsonError }
 
         assertEquals(null, json.stringOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.string }
+        assertFailsOn(PATH_ROOT) { json.string }
 
         assertEquals(null, json.intOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.int }
+        assertFailsOn(PATH_ROOT) { json.int }
 
         assertEquals(null, json.longOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.long }
+        assertFailsOn(PATH_ROOT) { json.long }
 
         assertEquals(null, json.doubleOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.double }
+        assertFailsOn(PATH_ROOT) { json.double }
 
         assertEquals(null, json.boolOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.bool }
+        assertFailsOn(PATH_ROOT) { json.bool }
     }
 
     @Test
@@ -251,18 +249,18 @@ class JsonTypesTests {
         assertTrue { json[0] is JsonEmpty }
 
         assertEquals(null, json.stringOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.string }
+        assertFailsOn(PATH_ROOT) { json.string }
 
         assertEquals(null, json.intOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.int }
+        assertFailsOn(PATH_ROOT) { json.int }
 
         assertEquals(null, json.longOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.long }
+        assertFailsOn(PATH_ROOT) { json.long }
 
         assertEquals(null, json.doubleOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.double }
+        assertFailsOn(PATH_ROOT) { json.double }
 
         assertEquals(null, json.boolOrNull)
-        assertFailsOn(PATH_ROOT_MARKER) { json.bool }
+        assertFailsOn(PATH_ROOT) { json.bool }
     }
 }

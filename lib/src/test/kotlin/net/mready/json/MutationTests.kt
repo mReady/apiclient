@@ -61,8 +61,8 @@ class MutationTests {
 
         assertNull(json["obj"].arrayOrNull)
         assertNull(json["obj"]["inner1"].arrayOrNull)
-        assertFailsOn(PATH_ROOT_MARKER, "obj") { json["obj"].array }
-        assertFailsOn(PATH_ROOT_MARKER, "obj", "inner1") { json["obj"]["inner1"].array }
+        assertFailsOn(PATH_ROOT, "obj") { json["obj"].array }
+        assertFailsOn(PATH_ROOT, "obj", "inner1") { json["obj"]["inner1"].array }
 
         assertEquals("""{"obj":{"inner1":{"inner2":{"value":1}}}}""", adapter.stringify(json))
     }
@@ -80,8 +80,8 @@ class MutationTests {
 
         assertNull(json["arr"].objOrNull)
         assertNull(json["arr"][0].objOrNull)
-        assertFailsOn(PATH_ROOT_MARKER, "arr") { json["arr"].obj }
-        assertFailsOn(PATH_ROOT_MARKER, "arr", "[0]") { json["arr"][0].obj }
+        assertFailsOn(PATH_ROOT, "arr") { json["arr"].obj }
+        assertFailsOn(PATH_ROOT, "arr", "[0]") { json["arr"][0].obj }
 
         assertEquals("""{"arr":[[1]]}""", adapter.stringify(json))
     }
@@ -108,8 +108,8 @@ class MutationTests {
             "null" value null
         }
 
-        assertFailsOn(PATH_ROOT_MARKER, "null") { json["null"]["value"] = 1 }
-        assertFailsOn(PATH_ROOT_MARKER, "null") { json["null"][0] = 1 }
+        assertFailsOn(PATH_ROOT, "null") { json["null"]["value"] = 1 }
+        assertFailsOn(PATH_ROOT, "null") { json["null"][0] = 1 }
     }
 
     @Test
@@ -122,8 +122,8 @@ class MutationTests {
         json["obj"]["inner"] = inner
         json["arr"][0] = inner
 
-        assertFailsOn(PATH_ROOT_MARKER, "obj", "inner", "value") { json["obj"]["inner"]["value"].bool }
-        assertFailsOn(PATH_ROOT_MARKER, "arr", "[0]", "value") { json["arr"][0]["value"].bool }
+        assertFailsOn(PATH_ROOT, "obj", "inner", "value") { json["obj"]["inner"]["value"].bool }
+        assertFailsOn(PATH_ROOT, "arr", "[0]", "value") { json["arr"][0]["value"].bool }
 
         assertEquals("""{"obj":{"inner":{"value":1}},"arr":[{"value":1}]}""", adapter.stringify(json))
     }

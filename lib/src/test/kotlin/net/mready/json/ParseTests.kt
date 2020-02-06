@@ -5,7 +5,6 @@ import org.intellij.lang.annotations.Language
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 
@@ -65,7 +64,7 @@ class ParseTests {
         assertTrue { json is JsonPrimitive }
         assertTrue { (json as JsonPrimitive).type == JsonPrimitive.Type.UNKNOWN }
         assertEquals("123.0.0", json.string)
-        assertFailsOn(PATH_ROOT_MARKER) { json.double }
+        assertFailsOn(PATH_ROOT) { json.double }
     }
 
     @Test
