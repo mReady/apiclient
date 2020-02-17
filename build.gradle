@@ -26,10 +26,10 @@ subprojects {
 
     compileKotlin {
         kotlinOptions.jvmTarget = "1.8"
-        kotlinOptions.freeCompilerArgs = ["-Xuse-experimental=kotlin.Experimental", "-progressive"]
+        kotlinOptions.freeCompilerArgs = ["-Xuse-experimental=kotlin.Experimental", "-XXLanguage:+InlineClasses", "-progressive"]
     }
     compileTestKotlin {
         kotlinOptions.jvmTarget = "1.8"
-        kotlinOptions.freeCompilerArgs = ["-Xuse-experimental=kotlin.Experimental", "-progressive"]
+        kotlinOptions.freeCompilerArgs = ["-Xuse-experimental=kotlin.Experimental", "-XXLanguage:+InlineClasses", "-progressive"]
     }
 }

@@ -15,7 +15,7 @@ inline fun jsonArray(block: JsonArrayDsl.() -> Unit): JsonValue {
 }
 
 @JsonDslMarker
-open class JsonDsl(@PublishedApi internal val path: String = PATH_ROOT_MARKER) {
+open class JsonDsl(@PublishedApi internal val path: JsonPath = JsonPath.ROOT) {
     inline fun jsonArray(block: JsonArrayDsl.() -> Unit): JsonValue {
         return JsonArrayDsl(path).apply(block).build()
     }
@@ -26,7 +26,7 @@ open class JsonDsl(@PublishedApi internal val path: String = PATH_ROOT_MARKER) {
 }
 
 @JsonDslMarker
-class JsonObjectDsl(path: String = PATH_ROOT_MARKER) : JsonDsl(path) {
+class JsonObjectDsl(path: JsonPath = JsonPath.ROOT) : JsonDsl(path) {
     val obj: JsonValue = JsonObject(mutableMapOf(), path)
 
     infix fun String.value(value: Nothing?) {
@@ -50,11 +50,11 @@ class JsonObjectDsl(path: String = PATH_ROOT_MARKER) : JsonDsl(path) {
     }
 
     inline infix fun String.jsonArray(block: JsonArrayDsl.() -> Unit) {
-        obj[this] = JsonArrayDsl(path.expandPath(this)).apply(block).build()
+        obj[this] = JsonArrayDsl(path + this).apply(block).build()
     }
 
     inline infix fun String.jsonObject(block: JsonObjectDsl.() -> Unit) {
-        obj[this] = JsonObjectDsl(path.expandPath(this)).apply(block).build()
+        obj[this] = JsonObjectDsl(path + this).apply(block).build()
     }
 
     @PublishedApi
@@ -64,7 +64,7 @@ class JsonObjectDsl(path: String = PATH_ROOT_MARKER) : JsonDsl(path) {
 }
 
 @JsonDslMarker
-class JsonArrayDsl(path: String = PATH_ROOT_MARKER) : JsonDsl(path) {
+class JsonArrayDsl(path: JsonPath = JsonPath.ROOT) : JsonDsl(path) {
     val array: JsonValue = JsonArray(mutableListOf(), path)
 
     fun emit(value: Nothing?) {

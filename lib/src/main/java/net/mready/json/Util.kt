@@ -2,16 +2,7 @@ package net.mready.json
 
 import java.lang.AssertionError
 
-@PublishedApi
-internal const val PATH_ROOT_MARKER = "[root]"
-
-@PublishedApi
-internal fun String.expandPath(key: String) = "$this > $key"
-
-@PublishedApi
-internal fun String.expandPath(index: Int) = "$this > [$index]"
-
-internal inline fun <T> jsonNullOr(value: T?, path: String, block: (T) -> JsonValue): JsonValue {
+internal inline fun <T> jsonNullOr(value: T?, path: JsonPath, block: (T) -> JsonValue): JsonValue {
     return if (value == null) {
         JsonNull(path)
     } else {
@@ -19,7 +10,7 @@ internal inline fun <T> jsonNullOr(value: T?, path: String, block: (T) -> JsonVa
     }
 }
 
-internal inline fun <reified T> wrapValue(value: T, path: String = PATH_ROOT_MARKER): JsonValue {
+internal inline fun <reified T> wrapValue(value: T, path: JsonPath = JsonPath.ROOT): JsonValue {
     return when (value) {
         null -> JsonNull(path)
         is String -> JsonPrimitive(value, JsonPrimitive.Type.STRING, path)
@@ -30,10 +21,10 @@ internal inline fun <reified T> wrapValue(value: T, path: String = PATH_ROOT_MAR
     }
 }
 
-internal fun wrapArray(collection: Collection<Any?>?, path: String): JsonValue {
+internal fun wrapArray(collection: Collection<Any?>?, path: JsonPath): JsonValue {
     return jsonNullOr(collection, path) {
         JsonArray(
-            it.mapIndexedTo(mutableListOf()) { index, item -> wrapValue(item, path.expandPath(index)) },
+            it.mapIndexedTo(mutableListOf()) { index, item -> wrapValue(item, path + index) },
             path
         )
     }
