@@ -14,11 +14,12 @@ buildscript {
 
 subprojects {
     apply plugin: 'kotlin'
-    apply plugin: 'kotlinx-serialization'
 
     repositories {
         jcenter()
-        mavenCentral()
+        maven {
+            url 'http://repo.mready.net/repository/android-releases/'
+        }
     }
 
     sourceCompatibility = JavaVersion.VERSION_1_8

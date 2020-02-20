@@ -50,14 +50,14 @@ class RawBodyBuilder(private val content: String?) : RequestBodyBuilder {
 @ApiDsl
 class JsonObjectBodyBuilder(private val block: JsonObjectDsl.() -> Unit) : RequestBodyBuilder {
     override fun build(adapter: JsonAdapter): RequestBody? {
-        return jsonObject(block).toJsonString(adapter = adapter).toRequestBody("application/json".toMediaType())
+        return jsonObject(adapter, block).toJsonString(adapter = adapter).toRequestBody("application/json".toMediaType())
     }
 }
 
 @ApiDsl
 class JsonArrayBodyBuilder(private val block: JsonArrayDsl.() -> Unit) : RequestBodyBuilder {
     override fun build(adapter: JsonAdapter): RequestBody? {
-        return jsonArray(block).toJsonString(adapter = adapter).toRequestBody("application/json".toMediaType())
+        return jsonArray(adapter, block).toJsonString(adapter = adapter).toRequestBody("application/json".toMediaType())
     }
 }
 
