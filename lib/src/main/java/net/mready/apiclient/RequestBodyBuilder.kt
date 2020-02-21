@@ -2,6 +2,7 @@
 
 package net.mready.apiclient
 
+import net.mready.json.FluidJson
 import net.mready.json.JsonAdapter
 import net.mready.json.JsonArrayDsl
 import net.mready.json.JsonObjectDsl
@@ -77,23 +78,24 @@ class JsonArrayBodyBuilder(private val block: JsonArrayDsl.() -> Unit) : Request
     }
 }
 
+
 @ApiDsl
 class FormBodyBuilder : RequestBodyBuilder {
     val values = mutableListOf<Pair<String, Any?>>()
 
     infix fun String.value(value: String?) {
-        if (value != null) {
-            values.add(this to value)
-        }
+        values.add(this to value)
     }
 
     infix fun String.value(value: Number?) {
-        if (value != null) {
-            values.add(this to value)
-        }
+        values.add(this to value)
     }
 
     infix fun String.value(value: Boolean?) {
+        values.add(this to value)
+    }
+
+    infix fun String.value(value: FluidJson?) {
         values.add(this to value)
     }
 
@@ -102,7 +104,10 @@ class FormBodyBuilder : RequestBodyBuilder {
 
         return FormBody.Builder().apply {
             values.forEach { (key, value) ->
-                add(key, value.toString())
+                when (value) {
+                    is FluidJson -> add(key, adapter.stringify(value))
+                    else -> add(key, value.toString())
+                }
             }
         }.build()
     }
@@ -110,45 +115,27 @@ class FormBodyBuilder : RequestBodyBuilder {
 
 @ApiDsl
 class MultiPartBodyBuilder : RequestBodyBuilder {
-    val values = mutableListOf<MultipartBody.Part>()
+
+    val values = mutableListOf<Pair<String, Any?>>() //Any can be String, Number, File and FluidJson
 
     infix fun String.value(value: String?) {
-        if (value != null) {
-            val part = MultipartBody.Part.createFormData(
-                name = this,
-                value = value.toString()
-            )
-            values.add(part)
-        }
+        values.add(this to value)
     }
 
     infix fun String.value(value: Number?) {
-        if (value != null) {
-            val part = MultipartBody.Part.createFormData(
-                name = this,
-                value = value.toString()
-            )
-            values.add(part)
-        }
+        values.add(this to value)
     }
 
     infix fun String.value(value: Boolean?) {
-        val part = MultipartBody.Part.createFormData(
-            name = this,
-            value = value.toString()
-        )
-        values.add(part)
+        values.add(this to value)
     }
 
     infix fun String.file(value: File) {
-        val mimeType = runCatching { Files.probeContentType(value.toPath()) }.getOrNull() ?: "application/octet-stream"
+        values.add(this to value)
+    }
 
-        val part = MultipartBody.Part.createFormData(
-            name = this,
-            filename = value.name,
-            body = value.asRequestBody(mimeType.toMediaType())
-        )
-        values.add(part)
+    infix fun String.value(value: FluidJson?) {
+        values.add(this to value)
     }
 
     override fun build(adapter: JsonAdapter): RequestBody? {
@@ -157,7 +144,33 @@ class MultiPartBodyBuilder : RequestBodyBuilder {
         return MultipartBody.Builder()
             .setType("multipart/form-data".toMediaType())
             .apply {
-                values.forEach { addPart(it) }
+                values.forEach { (key, value) ->
+                    val part = when (value) {
+                        is File -> {
+                            val mimeType = runCatching { Files.probeContentType(value.toPath()) }.getOrNull()
+                                ?: "application/octet-stream"
+
+                            MultipartBody.Part.createFormData(
+                                name = key,
+                                filename = value.name,
+                                body = value.asRequestBody(mimeType.toMediaType())
+                            )
+                        }
+                        is FluidJson -> {
+                            MultipartBody.Part.createFormData(
+                                name = key,
+                                value = adapter.stringify(value)
+                            )
+                        }
+                        else -> {
+                            MultipartBody.Part.createFormData(
+                                name = key,
+                                value = value.toString()
+                            )
+                        }
+                    }
+                    addPart(part)
+                }
             }.build()
     }
 }
