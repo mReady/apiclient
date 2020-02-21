@@ -2,7 +2,9 @@
 
 package net.mready.apiclient
 
-import net.mready.json.*
+import net.mready.json.JsonAdapter
+import net.mready.json.JsonArrayDsl
+import net.mready.json.JsonObjectDsl
 import okhttp3.FormBody
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
@@ -49,21 +51,35 @@ class RawBodyBuilder(private val content: String?) : RequestBodyBuilder {
 
 @ApiDsl
 class JsonObjectBodyBuilder(private val block: JsonObjectDsl.() -> Unit) : RequestBodyBuilder {
+    private val objectDsl = JsonObjectDsl()
+    val jsonObject = objectDsl.obj
+
+    init {
+        objectDsl.apply(block)
+    }
+
     override fun build(adapter: JsonAdapter): RequestBody? {
-        return jsonObject(adapter, block).toJsonString(adapter = adapter).toRequestBody("application/json".toMediaType())
+        return jsonObject.toJsonString(adapter = adapter).toRequestBody("application/json".toMediaType())
     }
 }
 
 @ApiDsl
 class JsonArrayBodyBuilder(private val block: JsonArrayDsl.() -> Unit) : RequestBodyBuilder {
+    private val arrayDsl = JsonArrayDsl()
+    val jsonArray = arrayDsl.array
+
+    init {
+        arrayDsl.apply(block)
+    }
+
     override fun build(adapter: JsonAdapter): RequestBody? {
-        return jsonArray(adapter, block).toJsonString(adapter = adapter).toRequestBody("application/json".toMediaType())
+        return jsonArray.toJsonString(adapter = adapter).toRequestBody("application/json".toMediaType())
     }
 }
 
 @ApiDsl
 class FormBodyBuilder : RequestBodyBuilder {
-    private val values = mutableListOf<Pair<String, Any?>>()
+    val values = mutableListOf<Pair<String, Any?>>()
 
     infix fun String.value(value: String?) {
         if (value != null) {
@@ -94,7 +110,7 @@ class FormBodyBuilder : RequestBodyBuilder {
 
 @ApiDsl
 class MultiPartBodyBuilder : RequestBodyBuilder {
-    private val values = mutableListOf<MultipartBody.Part>()
+    val values = mutableListOf<MultipartBody.Part>()
 
     infix fun String.value(value: String?) {
         if (value != null) {
