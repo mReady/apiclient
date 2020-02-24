@@ -3,9 +3,8 @@
 package net.mready.apiclient
 
 import net.mready.json.JsonAdapter
-import net.mready.json.JsonValue
-import net.mready.json.defaultJsonAdapter
-import net.mready.json.kotlinx.KotlinxJsonAdapter
+import net.mready.json.Json
+import net.mready.json.getDefaultAdapter
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -19,7 +18,7 @@ class ParseException(message: String, cause: Throwable?) : RuntimeException(mess
 
 class ApiException(message: String) : RuntimeException(message)
 
-typealias ResponseHandler<T> = (JsonValue) -> T
+typealias ResponseHandler<T> = (Json) -> T
 
 enum class Method {
     GET, POST, PUT, DELETE
@@ -28,7 +27,7 @@ enum class Method {
 open class ApiClient(
     private val baseUrl: String = "",
     protected val httpClient: OkHttpClient = OkHttpClient(),
-    protected val jsonAdapter: JsonAdapter = KotlinxJsonAdapter()
+    protected val jsonAdapter: JsonAdapter = Json.getDefaultAdapter()
 ) {
 
     fun buildUrl(endpoint: String, query: Map<String, Any?>? = null): String {
@@ -64,17 +63,17 @@ open class ApiClient(
         return httpClient.newCall(request).await()
     }
 
-    protected open fun parseResponse(response: Response): JsonValue {
+    protected open fun parseResponse(response: Response): Json {
         val responseBody = response.body
 
         return if (responseBody != null && responseBody.contentLength() != 0L) {
-            JsonValue.parse(responseBody.string(), jsonAdapter)
+            Json.parse(responseBody.string(), jsonAdapter)
         } else {
-            JsonValue()
+            Json()
         }
     }
 
-    protected open fun verifyResponse(response: Response, json: JsonValue) {
+    protected open fun verifyResponse(response: Response, json: Json) {
     }
 
     suspend fun execute(

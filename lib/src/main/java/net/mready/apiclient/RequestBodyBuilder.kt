@@ -2,7 +2,10 @@
 
 package net.mready.apiclient
 
-import net.mready.json.*
+import net.mready.json.Json
+import net.mready.json.JsonAdapter
+import net.mready.json.JsonArrayDsl
+import net.mready.json.JsonObjectDsl
 import okhttp3.FormBody
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
@@ -49,35 +52,50 @@ class RawBodyBuilder(private val content: String?) : RequestBodyBuilder {
 
 @ApiDsl
 class JsonObjectBodyBuilder(private val block: JsonObjectDsl.() -> Unit) : RequestBodyBuilder {
+    private val objectDsl = JsonObjectDsl()
+    val jsonObject = objectDsl.obj
+
+    init {
+        objectDsl.apply(block)
+    }
+
     override fun build(adapter: JsonAdapter): RequestBody? {
-        return jsonObject(block).toJsonString(adapter = adapter).toRequestBody("application/json".toMediaType())
+        return jsonObject.toJsonString(adapter = adapter).toRequestBody("application/json".toMediaType())
     }
 }
 
 @ApiDsl
 class JsonArrayBodyBuilder(private val block: JsonArrayDsl.() -> Unit) : RequestBodyBuilder {
+    private val arrayDsl = JsonArrayDsl()
+    val jsonArray = arrayDsl.array
+
+    init {
+        arrayDsl.apply(block)
+    }
+
     override fun build(adapter: JsonAdapter): RequestBody? {
-        return jsonArray(block).toJsonString(adapter = adapter).toRequestBody("application/json".toMediaType())
+        return jsonArray.toJsonString(adapter = adapter).toRequestBody("application/json".toMediaType())
     }
 }
 
+
 @ApiDsl
 class FormBodyBuilder : RequestBodyBuilder {
-    private val values = mutableListOf<Pair<String, Any?>>()
+    val values = mutableListOf<Pair<String, Any?>>() //Any: String | Number | Boolean | Json
 
     infix fun String.value(value: String?) {
-        if (value != null) {
-            values.add(this to value)
-        }
+        values.add(this to value)
     }
 
     infix fun String.value(value: Number?) {
-        if (value != null) {
-            values.add(this to value)
-        }
+        values.add(this to value)
     }
 
     infix fun String.value(value: Boolean?) {
+        values.add(this to value)
+    }
+
+    infix fun String.value(value: Json?) {
         values.add(this to value)
     }
 
@@ -86,7 +104,10 @@ class FormBodyBuilder : RequestBodyBuilder {
 
         return FormBody.Builder().apply {
             values.forEach { (key, value) ->
-                add(key, value.toString())
+                when (value) {
+                    is Json -> add(key, adapter.stringify(value))
+                    else -> add(key, value.toString())
+                }
             }
         }.build()
     }
@@ -94,45 +115,27 @@ class FormBodyBuilder : RequestBodyBuilder {
 
 @ApiDsl
 class MultiPartBodyBuilder : RequestBodyBuilder {
-    private val values = mutableListOf<MultipartBody.Part>()
+
+    val values = mutableListOf<Pair<String, Any?>>() //Any: String | Number | Boolean | Json | File
 
     infix fun String.value(value: String?) {
-        if (value != null) {
-            val part = MultipartBody.Part.createFormData(
-                name = this,
-                value = value.toString()
-            )
-            values.add(part)
-        }
+        values.add(this to value)
     }
 
     infix fun String.value(value: Number?) {
-        if (value != null) {
-            val part = MultipartBody.Part.createFormData(
-                name = this,
-                value = value.toString()
-            )
-            values.add(part)
-        }
+        values.add(this to value)
     }
 
     infix fun String.value(value: Boolean?) {
-        val part = MultipartBody.Part.createFormData(
-            name = this,
-            value = value.toString()
-        )
-        values.add(part)
+        values.add(this to value)
     }
 
     infix fun String.file(value: File) {
-        val mimeType = runCatching { Files.probeContentType(value.toPath()) }.getOrNull() ?: "application/octet-stream"
+        values.add(this to value)
+    }
 
-        val part = MultipartBody.Part.createFormData(
-            name = this,
-            filename = value.name,
-            body = value.asRequestBody(mimeType.toMediaType())
-        )
-        values.add(part)
+    infix fun String.value(value: Json?) {
+        values.add(this to value)
     }
 
     override fun build(adapter: JsonAdapter): RequestBody? {
@@ -141,7 +144,33 @@ class MultiPartBodyBuilder : RequestBodyBuilder {
         return MultipartBody.Builder()
             .setType("multipart/form-data".toMediaType())
             .apply {
-                values.forEach { addPart(it) }
+                values.forEach { (key, value) ->
+                    val part = when (value) {
+                        is File -> {
+                            val mimeType = runCatching { Files.probeContentType(value.toPath()) }.getOrNull()
+                                ?: "application/octet-stream"
+
+                            MultipartBody.Part.createFormData(
+                                name = key,
+                                filename = value.name,
+                                body = value.asRequestBody(mimeType.toMediaType())
+                            )
+                        }
+                        is Json -> {
+                            MultipartBody.Part.createFormData(
+                                name = key,
+                                value = adapter.stringify(value)
+                            )
+                        }
+                        else -> {
+                            MultipartBody.Part.createFormData(
+                                name = key,
+                                value = value.toString()
+                            )
+                        }
+                    }
+                    addPart(part)
+                }
             }.build()
     }
 }
