@@ -2,7 +2,7 @@
 
 package net.mready.apiclient
 
-import net.mready.json.FluidJson
+import net.mready.json.Json
 import net.mready.json.JsonAdapter
 import net.mready.json.JsonArrayDsl
 import net.mready.json.JsonObjectDsl
@@ -81,7 +81,7 @@ class JsonArrayBodyBuilder(private val block: JsonArrayDsl.() -> Unit) : Request
 
 @ApiDsl
 class FormBodyBuilder : RequestBodyBuilder {
-    val values = mutableListOf<Pair<String, Any?>>()
+    val values = mutableListOf<Pair<String, Any?>>() //Any: String | Number | Boolean | Json
 
     infix fun String.value(value: String?) {
         values.add(this to value)
@@ -95,7 +95,7 @@ class FormBodyBuilder : RequestBodyBuilder {
         values.add(this to value)
     }
 
-    infix fun String.value(value: FluidJson?) {
+    infix fun String.value(value: Json?) {
         values.add(this to value)
     }
 
@@ -105,7 +105,7 @@ class FormBodyBuilder : RequestBodyBuilder {
         return FormBody.Builder().apply {
             values.forEach { (key, value) ->
                 when (value) {
-                    is FluidJson -> add(key, adapter.stringify(value))
+                    is Json -> add(key, adapter.stringify(value))
                     else -> add(key, value.toString())
                 }
             }
@@ -116,7 +116,7 @@ class FormBodyBuilder : RequestBodyBuilder {
 @ApiDsl
 class MultiPartBodyBuilder : RequestBodyBuilder {
 
-    val values = mutableListOf<Pair<String, Any?>>() //Any can be String, Number, File and FluidJson
+    val values = mutableListOf<Pair<String, Any?>>() //Any: String | Number | Boolean | Json | File
 
     infix fun String.value(value: String?) {
         values.add(this to value)
@@ -134,7 +134,7 @@ class MultiPartBodyBuilder : RequestBodyBuilder {
         values.add(this to value)
     }
 
-    infix fun String.value(value: FluidJson?) {
+    infix fun String.value(value: Json?) {
         values.add(this to value)
     }
 
@@ -156,7 +156,7 @@ class MultiPartBodyBuilder : RequestBodyBuilder {
                                 body = value.asRequestBody(mimeType.toMediaType())
                             )
                         }
-                        is FluidJson -> {
+                        is Json -> {
                             MultipartBody.Part.createFormData(
                                 name = key,
                                 value = adapter.stringify(value)
