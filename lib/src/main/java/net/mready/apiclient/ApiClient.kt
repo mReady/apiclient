@@ -2,6 +2,8 @@
 
 package net.mready.apiclient
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import net.mready.json.Json
 import net.mready.json.JsonAdapter
 import net.mready.json.getDefaultAdapter
@@ -112,41 +114,43 @@ open class ApiClient(
         errorHandler: ResponseHandler<Unit>? = null,
         responseHandler: ResponseHandler<T>
     ): T {
-        try {
-            val networkResponse = execute(
-                method = method,
-                endpoint = endpoint,
-                query = query,
-                headers = headers,
-                body = body
-            )
+        return withContext(Dispatchers.IO) {
+            try {
+                val networkResponse = execute(
+                    method = method,
+                    endpoint = endpoint,
+                    query = query,
+                    headers = headers,
+                    body = body
+                )
 
-            networkResponse.body.use {
-                if (networkResponse.isSuccessful) {
-                    val responseJson = try {
-                        parseResponse(networkResponse)
-                    } catch (e: Throwable) {
-                        throw ParseException("Unable to parse request body for $endpoint", e)
+                networkResponse.body.use {
+                    if (networkResponse.isSuccessful) {
+                        val responseJson = try {
+                            parseResponse(networkResponse)
+                        } catch (e: Throwable) {
+                            throw ParseException("Unable to parse request body for $endpoint", e)
+                        }
+
+                        verifyResponse(networkResponse, responseJson)
+                        return@use responseHandler(responseJson)
+                    } else {
+                        runCatching {
+                            parseResponse(networkResponse)
+                        }.onSuccess {
+                            errorHandler?.invoke(it)
+                            verifyResponse(networkResponse, it)
+                        }
+
+                        throw HttpCodeException(
+                            networkResponse.code,
+                            networkResponse.message
+                        )
                     }
-
-                    verifyResponse(networkResponse, responseJson)
-                    return responseHandler(responseJson)
-                } else {
-                    runCatching {
-                        parseResponse(networkResponse)
-                    }.onSuccess {
-                        errorHandler?.invoke(it)
-                        verifyResponse(networkResponse, it)
-                    }
-
-                    throw HttpCodeException(
-                        networkResponse.code,
-                        networkResponse.message
-                    )
                 }
+            } catch (e: Exception) {
+                throw e
             }
-        } catch (e: Exception) {
-            throw e
         }
     }
 }
