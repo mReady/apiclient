@@ -60,7 +60,7 @@ class JsonObjectBodyBuilder(private val block: JsonObjectDsl.() -> Unit) : Reque
     }
 
     override fun build(adapter: JsonAdapter): RequestBody? {
-        return jsonObject.toJsonString(adapter = adapter).toRequestBody("application/json".toMediaType())
+        return adapter.stringify(jsonObject).toRequestBody("application/json".toMediaType())
     }
 }
 
@@ -74,7 +74,7 @@ class JsonArrayBodyBuilder(private val block: JsonArrayDsl.() -> Unit) : Request
     }
 
     override fun build(adapter: JsonAdapter): RequestBody? {
-        return jsonArray.toJsonString(adapter = adapter).toRequestBody("application/json".toMediaType())
+        return adapter.stringify(jsonArray).toRequestBody("application/json".toMediaType())
     }
 }
 
