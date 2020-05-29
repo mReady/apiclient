@@ -7,10 +7,10 @@ plugins {
 dependencies {
     implementation(kotlin("stdlib-jdk7"))
 
-    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.4")
-    api("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.3.4")
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.7")
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.3.7")
 
-    api("com.squareup.okhttp3:okhttp:4.4.0")
+    api("com.squareup.okhttp3:okhttp:4.7.2")
     api("net.mready.json:fluidjson:0.3.4")
 
     testImplementation("junit:junit:4.12")
