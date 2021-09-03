@@ -9,8 +9,7 @@ subprojects {
     apply(plugin = "kotlinx-serialization")
 
     repositories {
-        jcenter()
-        maven(url = "https://repo.mready.net/repository/android-releases/")
+        mavenCentral()
     }
 
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
