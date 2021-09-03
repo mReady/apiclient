@@ -6,7 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import net.mready.json.Json
 import net.mready.json.JsonAdapter
-import net.mready.json.getDefaultAdapter
+import net.mready.json.adapters.KotlinxJsonAdapter
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -29,12 +29,21 @@ enum class Method {
 open class ApiClient(
     private val baseUrl: String = "",
     protected val httpClient: OkHttpClient = OkHttpClient(),
-    protected val jsonAdapter: JsonAdapter = Json.getDefaultAdapter()
+    protected val jsonAdapter: JsonAdapter = KotlinxJsonAdapter()
 ) {
 
     fun buildUrl(endpoint: String, query: Map<String, Any?>? = null): String {
         val url = if (endpoint.startsWith("http")) {
             endpoint
+        } else if (endpoint.startsWith("/")) {
+            val baseHttpUrl = baseUrl.toHttpUrl()
+            val urlBuilder = baseHttpUrl.newBuilder()
+
+            if (baseHttpUrl.pathSegments.isNotEmpty()) {
+                urlBuilder.removePathSegment(0)
+            }
+
+            return urlBuilder.addPathSegments(endpoint.trimStart('/')).build().toUri().toString()
         } else {
             baseUrl.trimEnd('/') + "/" + endpoint.trimStart('/')
         }
@@ -57,7 +66,7 @@ open class ApiClient(
         return builder.build(jsonAdapter)
     }
 
-    protected open fun buildRequest(builder: Request.Builder): Request {
+    protected open suspend fun buildRequest(builder: Request.Builder): Request {
         return builder.build()
     }
 
@@ -69,7 +78,7 @@ open class ApiClient(
         val responseBody = response.body
 
         return if (responseBody != null && responseBody.contentLength() != 0L) {
-            Json.parse(responseBody.string(), jsonAdapter)
+            jsonAdapter.parse(responseBody.string())
         } else {
             Json()
         }
