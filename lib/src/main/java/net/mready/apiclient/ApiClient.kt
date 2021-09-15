@@ -114,7 +114,7 @@ open class ApiClient(
         return executeRequest(request)
     }
 
-    suspend fun <T> call(
+    open suspend fun <T> call(
         method: Method,
         endpoint: String,
         query: Map<String, Any?>? = null,

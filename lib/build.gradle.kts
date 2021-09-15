@@ -13,7 +13,7 @@ version = VERSION_NAME
 dependencies {
     implementation(kotlin("stdlib-jdk7"))
 
-    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.1")
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2")
 
     api("com.squareup.okhttp3:okhttp:4.9.1")
     api("net.mready.json:fluidjson:1.0.0-beta7")
