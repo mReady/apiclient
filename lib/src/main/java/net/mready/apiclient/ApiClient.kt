@@ -43,7 +43,7 @@ open class ApiClient(
                 urlBuilder.removePathSegment(0)
             }
 
-            return urlBuilder.addPathSegments(endpoint.trimStart('/')).build().toUri().toString()
+            urlBuilder.addPathSegments(endpoint.trimStart('/')).build().toUri().toString()
         } else {
             baseUrl.trimEnd('/') + "/" + endpoint.trimStart('/')
         }
