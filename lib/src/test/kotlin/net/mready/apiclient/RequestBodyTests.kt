@@ -1,7 +1,6 @@
 package net.mready.apiclient
 
-import net.mready.json.Json
-import net.mready.json.getDefaultAdapter
+import net.mready.json.adapters.KotlinxJsonAdapter
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okio.Buffer
@@ -12,7 +11,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class RequestBodyTests {
-    private val jsonAdapter = Json.getDefaultAdapter()
+    private val jsonAdapter = KotlinxJsonAdapter()
 
     private fun RequestBody.string(): String {
         val buffer = Buffer()
@@ -38,7 +37,7 @@ class RequestBodyTests {
     @Test
     fun buildJsonObjectBody() {
         val body = jsonObjectBody {
-            "hello" value "world"
+            obj["hello"] = "world"
         }.build(jsonAdapter)
 
         assertNotNull(body)

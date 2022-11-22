@@ -1,7 +1,7 @@
 
 plugins {
-    kotlin("jvm") version "1.3.70" apply false
-    kotlin("plugin.serialization") version "1.3.70" apply false
+    kotlin("jvm") version "1.7.20" apply false
+    kotlin("plugin.serialization") version "1.7.20" apply false
 }
 
 subprojects {
@@ -9,8 +9,7 @@ subprojects {
     apply(plugin = "kotlinx-serialization")
 
     repositories {
-        jcenter()
-        maven(url = "http://repo.mready.net/repository/android-releases/")
+        mavenCentral()
     }
 
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
