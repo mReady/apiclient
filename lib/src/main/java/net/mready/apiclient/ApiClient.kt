@@ -66,6 +66,10 @@ open class ApiClient(
         return builder.build(jsonAdapter)
     }
 
+    /**
+     * Build the request for OkHttp, this can be used to add the auth token for example
+     *
+     */
     protected open suspend fun buildRequest(builder: Request.Builder): Request {
         return builder.build()
     }
@@ -74,6 +78,10 @@ open class ApiClient(
         return httpClient.newCall(request).await()
     }
 
+    /**
+     * Parse the given [response] and return the body as a [Json] object.
+     *
+     */
     protected open fun parseResponse(response: Response): Json {
         val responseBody = response.body
 
@@ -84,6 +92,10 @@ open class ApiClient(
         }
     }
 
+    /**
+     * Verify the given [response] in order to validate it and maybe throw general exceptions.
+     *
+     */
     protected open fun verifyResponse(response: Response, json: Json) {
     }
 
@@ -114,6 +126,18 @@ open class ApiClient(
         return executeRequest(request)
     }
 
+    /**
+     *  Execute the request and parse the response
+     *
+     *
+     * @param method The HTTP method
+     * @param endpoint It's either the path when used with a baseUrl, the full url or if the path starts with '/' will replace everything up until the base
+     * @param query The request query parameters
+     * @param headers The request headers
+     * @param body The request body
+     * @param errorHandler The primary error handler for this call, you can check and throw other errors that are not present in [verifyResponse]
+     * @param responseHandler The response handler to parse the response body
+     */
     open suspend fun <T> call(
         method: Method,
         endpoint: String,

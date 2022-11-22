@@ -10,7 +10,7 @@ import kotlin.coroutines.resumeWithException
 
 
 //currently OkHttp doesn't have an await for Call, maybe in the future will have and this will not be needed anymore
-suspend fun Call.await() = suspendCancellableCoroutine<Response> { c ->
+suspend fun Call.await() = suspendCancellableCoroutine { c ->
     enqueue(object : Callback {
         override fun onResponse(call: Call, response: Response) {
             c.resume(response)

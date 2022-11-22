@@ -1,7 +1,7 @@
 
 plugins {
-    kotlin("jvm") version "1.5.21" apply false
-    kotlin("plugin.serialization") version "1.5.20" apply false
+    kotlin("jvm") version "1.7.20" apply false
+    kotlin("plugin.serialization") version "1.7.20" apply false
 }
 
 subprojects {
