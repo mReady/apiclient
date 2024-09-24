@@ -1,18 +1,46 @@
-
 plugins {
-    id("com.vanniktech.maven.publish") version "0.22.0"
-    id("org.jetbrains.dokka") version "1.7.20"
+    alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.kotlinx.serialization)
+//    alias(libs.plugins.vaniktek.mavem.publish)
+    alias(libs.plugins.jetbrains.dokka)
+    alias(libs.plugins.android.library)
 }
 
-dependencies {
-    implementation(kotlin("stdlib-jdk7"))
+kotlin {
+    androidTarget()
+    iosX64()
+    iosArm64()
+    iosSimulatorArm64()
+    jvm()
 
-    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
+    sourceSets {
+        commonMain {
+            dependencies {
+                implementation(libs.kotlinx.coroutines.core)
+                implementation(libs.mready.json)
+                implementation(libs.kotlinx.serialization.json)
 
-    api("com.squareup.okhttp3:okhttp:4.10.0")
-    api("net.mready.json:fluidjson:1.0.0")
-    api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
+                //Ktor
+                implementation(libs.ktor.client.core)
+                implementation(libs.ktor.client.cio)
+                implementation(libs.ktor.client.contentNegotiation)
+                implementation(libs.ktor.serialization.json)
+            }
+        }
+        commonTest {
+            dependencies {
+                implementation(kotlin("test"))
+            }
+        }
+    }
+}
 
-    testImplementation("junit:junit:4.13.2")
-    testImplementation(kotlin("test-junit"))
+android {
+    namespace = "net.mready.apiclient"
+    compileSdk = 34
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
 }

@@ -1,11 +1,10 @@
-package net.mready.apiclient
-
+import io.ktor.client.request.forms.*
+import io.ktor.http.content.*
+import io.ktor.utils.io.*
+import kotlinx.coroutines.runBlocking
+import net.mready.apiclient.*
 import net.mready.json.adapters.KotlinxJsonAdapter
-import okhttp3.MultipartBody
-import okhttp3.RequestBody
-import okio.Buffer
-import org.junit.Test
-import java.io.File
+import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -13,10 +12,22 @@ import kotlin.test.assertNull
 class RequestBodyTests {
     private val jsonAdapter = KotlinxJsonAdapter()
 
-    private fun RequestBody.string(): String {
-        val buffer = Buffer()
-        writeTo(buffer)
-        return buffer.readUtf8()
+    private fun OutgoingContent.string(): String {
+        return when (this) {
+            is OutgoingContent.ByteArrayContent -> bytes().decodeToString(throwOnInvalidSequence = true)
+            is OutgoingContent.ContentWrapper -> delegate().string()
+            is OutgoingContent.WriteChannelContent -> runBlocking {
+                val channel = ByteChannel()
+                writeTo(channel)
+                val out = ByteArray(channel.availableForRead)
+                channel.readFully(out)
+                out.decodeToString(throwOnInvalidSequence = true).trimIndent()
+            }
+
+            is OutgoingContent.NoContent -> ""
+            is OutgoingContent.ProtocolUpgrade -> ""
+            is OutgoingContent.ReadChannelContent -> ""
+        }
     }
 
     @Test
@@ -73,13 +84,13 @@ class RequestBodyTests {
     @Test
     fun buildUrlEncodedBody() {
         val body = formBody {
-            "string" value "hello world"
+            "string space" value "hello world"
             "int" value 1
             "bool" value true
         }.build(jsonAdapter)
 
         assertNotNull(body)
-        assertEquals("string=hello%20world&int=1&bool=true", body.string())
+        assertEquals("string+space=hello+world&int=1&bool=true", body.string())
     }
 
     @Test
@@ -91,17 +102,23 @@ class RequestBodyTests {
 
     @Test
     fun buildMultipartBody() {
-        val file = File.createTempFile("api-client-", null)
-        file.deleteOnExit()
+        val fileInfo = FileInfo(
+            byteArray = "content".encodeToByteArray(),
+            fileName = "api-client-"
+        )
 
-        file.writeText("content")
+        val spacesFileInfo = FileInfo(
+            byteArray = "content with spaces and file name".encodeToByteArray(),
+            fileName = "api client"
+        )
 
         val body = multipartBody {
             "string" value "hello world"
             "int" value 1
             "bool" value true
-            "file" file file
-        }.build(jsonAdapter) as? MultipartBody
+            "file" file fileInfo
+            "file 2" file spacesFileInfo
+        }.build(jsonAdapter) as? MultiPartFormDataContent
 
         assertNotNull(body)
 
@@ -110,36 +127,41 @@ class RequestBodyTests {
         // TODO: smarter system if more tests are written for this
         val expected = """
             --$boundary
-            Content-Disposition: form-data; name="string"
+            Content-Disposition: form-data; name=string
             Content-Length: 11
 
             hello world
             --$boundary
-            Content-Disposition: form-data; name="int"
+            Content-Disposition: form-data; name=int
             Content-Length: 1
 
             1
             --$boundary
-            Content-Disposition: form-data; name="bool"
+            Content-Disposition: form-data; name=bool
             Content-Length: 4
 
             true
             --$boundary
-            Content-Disposition: form-data; name="file"; filename="${file.name}"
+            Content-Disposition: form-data; name=file; filename=${fileInfo.fileName}
             Content-Type: application/octet-stream
-            Content-Length: 7
+            Content-Length: ${fileInfo.contentLength}
 
             content
-            --$boundary--
-            
-        """.trimIndent()
+            --$boundary
+            Content-Disposition: form-data; name="file 2"; filename="${spacesFileInfo.fileName}"
+            Content-Type: application/octet-stream
+            Content-Length: ${spacesFileInfo.contentLength}
 
-        assertEquals(expected, body.string().replace("\r", ""))
+            content with spaces and file name
+            --$boundary--
+           """.trimIndent()
+
+        assertEquals(expected, body.string())
     }
 
     @Test
     fun buildEmptyMultipartBody() {
-        val body = multipartBody {}.build(jsonAdapter) as? MultipartBody
+        val body = multipartBody {}.build(jsonAdapter) as? MultiPartFormDataContent
 
         assertNull(body)
     }

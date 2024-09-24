@@ -2,18 +2,13 @@
 
 package net.mready.apiclient
 
+import io.ktor.client.request.forms.*
+import io.ktor.http.*
+import io.ktor.http.content.*
 import net.mready.json.Json
 import net.mready.json.JsonAdapter
 import net.mready.json.JsonArrayDsl
 import net.mready.json.JsonObjectDsl
-import okhttp3.FormBody
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.MultipartBody
-import okhttp3.RequestBody
-import okhttp3.RequestBody.Companion.asRequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
-import java.io.File
-import java.nio.file.Files
 
 fun rawBody(content: String?): RequestBodyBuilder {
     return RawBodyBuilder(content)
@@ -37,7 +32,7 @@ fun multipartBody(block: MultiPartBodyBuilder.() -> Unit): RequestBodyBuilder {
 
 
 interface RequestBodyBuilder {
-    fun build(adapter: JsonAdapter): RequestBody?
+    fun build(adapter: JsonAdapter): OutgoingContent?
 }
 
 @DslMarker
@@ -45,8 +40,8 @@ annotation class ApiDsl
 
 @ApiDsl
 class RawBodyBuilder(private val content: String?) : RequestBodyBuilder {
-    override fun build(adapter: JsonAdapter): RequestBody? {
-        return content?.toRequestBody("text/plain".toMediaType())
+    override fun build(adapter: JsonAdapter): TextContent? {
+        return content?.let { TextContent(it, ContentType.Text.Plain) }
     }
 }
 
@@ -59,8 +54,8 @@ class JsonObjectBodyBuilder(block: JsonObjectDsl.() -> Unit) : RequestBodyBuilde
         objectDsl.apply(block)
     }
 
-    override fun build(adapter: JsonAdapter): RequestBody {
-        return adapter.stringify(jsonObject).toRequestBody("application/json".toMediaType())
+    override fun build(adapter: JsonAdapter): TextContent {
+        return TextContent(adapter.stringify(jsonObject), ContentType.Application.Json)
     }
 }
 
@@ -73,8 +68,8 @@ class JsonArrayBodyBuilder(block: JsonArrayDsl.() -> Unit) : RequestBodyBuilder 
         arrayDsl.apply(block)
     }
 
-    override fun build(adapter: JsonAdapter): RequestBody {
-        return adapter.stringify(jsonArray).toRequestBody("application/json".toMediaType())
+    override fun build(adapter: JsonAdapter): TextContent {
+        return TextContent(adapter.stringify(jsonArray), ContentType.Application.Json)
     }
 }
 
@@ -99,18 +94,26 @@ class FormBodyBuilder : RequestBodyBuilder {
         values.add(this to value)
     }
 
-    override fun build(adapter: JsonAdapter): RequestBody? {
+    override fun build(adapter: JsonAdapter): FormDataContent? {
         if (values.isEmpty()) return null
 
-        return FormBody.Builder().apply {
+        return FormDataContent(formData = parameters {
             values.forEach { (key, value) ->
                 when (value) {
-                    is Json -> add(key, adapter.stringify(value))
-                    else -> add(key, value.toString())
+                    is Json -> append(key, adapter.stringify(value))
+                    is String -> append(key, value)
+                    else -> append(key, value.toString())
                 }
             }
-        }.build()
+        })
     }
+}
+
+class FileInfo(
+    val byteArray: ByteArray,
+    val fileName: String
+) {
+    val contentLength: Long = byteArray.size.toLong()
 }
 
 @ApiDsl
@@ -130,7 +133,7 @@ class MultiPartBodyBuilder : RequestBodyBuilder {
         values.add(this to value)
     }
 
-    infix fun String.file(value: File) {
+    infix fun String.file(value: FileInfo) {
         values.add(this to value)
     }
 
@@ -138,39 +141,43 @@ class MultiPartBodyBuilder : RequestBodyBuilder {
         values.add(this to value)
     }
 
-    override fun build(adapter: JsonAdapter): RequestBody? {
+    override fun build(adapter: JsonAdapter): MultiPartFormDataContent? {
         if (values.isEmpty()) return null
 
-        return MultipartBody.Builder()
-            .setType("multipart/form-data".toMediaType())
-            .apply {
+        return MultiPartFormDataContent(
+            parts = formData {
                 values.forEach { (key, value) ->
-                    val part = when (value) {
-                        is File -> {
-                            val mimeType = runCatching { Files.probeContentType(value.toPath()) }.getOrNull()
-                                ?: "application/octet-stream"
+                    when (value) {
+                        is FileInfo -> {
+                            append(key = key, value = value.byteArray, headers = Headers.build {
+                                append(
+                                    name = HttpHeaders.ContentType,
+                                    value = ContentType.Application.OctetStream.toString()
+                                )
+                                append(
+                                    name = HttpHeaders.ContentDisposition,
+                                    value = "filename=${value.fileName.escapeIfNeeded()}"
+                                )
+                            })
+                        }
 
-                            MultipartBody.Part.createFormData(
-                                name = key,
-                                filename = value.name,
-                                body = value.asRequestBody(mimeType.toMediaType())
-                            )
-                        }
                         is Json -> {
-                            MultipartBody.Part.createFormData(
-                                name = key,
-                                value = adapter.stringify(value)
-                            )
+                            append(key, adapter.stringify(value))
                         }
+
+                        is Number -> {
+                            append(key, value)
+                        }
+
+                        is Boolean -> {
+                            append(key, value)
+                        }
+
                         else -> {
-                            MultipartBody.Part.createFormData(
-                                name = key,
-                                value = value.toString()
-                            )
+                            append(key, value.toString())
                         }
                     }
-                    addPart(part)
                 }
-            }.build()
+            })
     }
 }
