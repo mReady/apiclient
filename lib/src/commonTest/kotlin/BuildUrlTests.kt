@@ -1,4 +1,4 @@
-import net.mready.apiclient.ApiClient
+import client.ApiClient
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

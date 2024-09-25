@@ -1,8 +1,9 @@
+import builders.*
 import io.ktor.client.request.forms.*
+import io.ktor.http.*
 import io.ktor.http.content.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.runBlocking
-import net.mready.apiclient.*
 import net.mready.json.adapters.KotlinxJsonAdapter
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -102,14 +103,15 @@ class RequestBodyTests {
 
     @Test
     fun buildMultipartBody() {
-        val fileInfo = FileInfo(
+        val fileInfo = FileInfo.create(
             byteArray = "content".encodeToByteArray(),
             fileName = "api-client-"
         )
 
-        val spacesFileInfo = FileInfo(
-            byteArray = "content with spaces and file name".encodeToByteArray(),
-            fileName = "api client"
+        val spacesFileInfo = FileInfo.create(
+            byteArray = "<html> </html>".encodeToByteArray(),
+            fileName = "api client",
+            contentType = ContentType.Text.Html
         )
 
         val body = multipartBody {
@@ -149,10 +151,10 @@ class RequestBodyTests {
             content
             --$boundary
             Content-Disposition: form-data; name="file 2"; filename="${spacesFileInfo.fileName}"
-            Content-Type: application/octet-stream
+            Content-Type: text/html
             Content-Length: ${spacesFileInfo.contentLength}
 
-            content with spaces and file name
+            <html> </html>
             --$boundary--
            """.trimIndent()
 

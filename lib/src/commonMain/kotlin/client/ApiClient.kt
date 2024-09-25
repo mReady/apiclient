@@ -1,7 +1,6 @@
-@file:Suppress("unused")
+package client
 
-package net.mready.apiclient
-
+import builders.RequestBodyBuilder
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.*
@@ -12,32 +11,34 @@ import io.ktor.http.*
 import io.ktor.http.content.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.channelFlow
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import net.mready.json.Json
 import net.mready.json.JsonAdapter
 import net.mready.json.adapters.KotlinxJsonAdapter
 
-class HttpCodeException(val code: Int, message: String) : RuntimeException(message)
-class ParseException(message: String, cause: Throwable?) : RuntimeException(message, cause)
-
+/**
+ * A sealed class representing the progress of a request.
+ *
+ * @property T The type of the data that will be returned when the request is done.
+ */
 sealed class ProgressEvent<out T> {
     class Progress<T>(val bytesSentTotal: Long, val contentLength: Long?) : ProgressEvent<T>()
     class Done<out T>(val data: T) : ProgressEvent<T>()
 }
 
-class ApiException(message: String) : RuntimeException(message)
 
 typealias ProgressHandler = suspend (bytesSentTotal: Long, contentLength: Long?) -> Unit
+typealias ErrorHandler = (NetworkResponseInfo, Json) -> Unit
+typealias RichResponseHandler<T> = (NetworkResponseInfo, Json) -> T
 typealias ResponseHandler<T> = (Json) -> T
 
-enum class Method {
-    GET, POST, PUT, DELETE
-}
-
+/**
+ * Class responsible for making API calls.
+ *
+ * @property baseUrl The base url for the API.
+ * @property httpClient The HTTP client to use for requests.
+ * @property jsonAdapter The JSON adapter to use for parsing and serializing JSON.
+ */
 open class ApiClient(
     private val baseUrl: String = "",
     protected val httpClient: HttpClient = HttpClient(CIO),
@@ -73,7 +74,6 @@ open class ApiClient(
 
     /**
      * Build the request, this can be used to add the auth token for example.
-     *
      */
     protected open suspend fun buildRequest(builder: HttpRequestBuilder): HttpRequestBuilder = builder
 
@@ -83,19 +83,27 @@ open class ApiClient(
 
     /**
      * Parse the given [response] and return the body as a [Json] object.
-     *
      */
     protected open suspend fun parseResponse(response: HttpResponse): Json = jsonAdapter.parse(response.bodyAsText())
 
     /**
      * Verify the given [response] in order to validate it and maybe throw general exceptions.
-     *
      */
     protected open fun verifyResponse(response: HttpResponse, json: Json) {
     }
 
+    /**
+     * Execute the request and return the response.
+     *
+     * @param method The HTTP method
+     * @param endpoint It's either the path when used with a baseUrl, the full url or if the path starts with '/' will replace everything up until the base
+     * @param query The request query parameters
+     * @param headers The request headers
+     * @param uploadProgress The progress handler for the upload
+     * @param body The request body build via [RequestBodyBuilder]
+     */
     suspend fun execute(
-        method: Method,
+        method: HttpMethod,
         endpoint: String,
         query: Map<String, Any?>? = null,
         headers: Map<String, String>? = null,
@@ -111,7 +119,7 @@ open class ApiClient(
 
         val request = HttpRequestBuilder().apply {
             this.url.takeFrom(urlBuilder)
-            this.method = HttpMethod.parse(method.name.uppercase())
+            this.method = method
             this.setBody(requestBody)
             headers?.forEach {
                 this.headers.append(it.key, it.value)
@@ -137,6 +145,14 @@ open class ApiClient(
     /**
      *  Execute the request and parse the response
      *
+     *  If the response could not be parsed it will throw a [ParseException]
+     *
+     *  For server errors, you can override [verifyResponse] and throw the error there to have a global handle
+     *  or use the [errorHandler] to handle the error only for the current call and throw it.
+     *  If you don't throw an error in either [verifyResponse] or [errorHandler] [HttpCodeException] will be thrown.
+     *
+     *  [errorHandler] takes precedence over [verifyResponse].
+     *
      *
      * @param method The HTTP method
      * @param endpoint It's either the path when used with a baseUrl, the full url or if the path starts with '/' will replace everything up until the base
@@ -147,14 +163,14 @@ open class ApiClient(
      * @param responseHandler The response handler to parse the response body
      */
     open suspend fun <T> call(
-        method: Method,
+        method: HttpMethod,
         endpoint: String,
         query: Map<String, Any?>? = null,
         headers: Map<String, String>? = null,
         body: RequestBodyBuilder? = null,
-        errorHandler: ResponseHandler<Unit>? = null,
+        errorHandler: ErrorHandler? = null,
         uploadProgress: ProgressHandler? = null,
-        responseHandler: ResponseHandler<T>
+        responseHandler: RichResponseHandler<T>
     ): T = withContext(Dispatchers.IO) {
         try {
             val networkResponse = execute(
@@ -165,6 +181,7 @@ open class ApiClient(
                 uploadProgress = uploadProgress,
                 body = body
             )
+            val networkResponseInfo = NetworkResponseInfo.fromHttpResponse(networkResponse)
 
             if (networkResponse.status.isSuccess()) {
                 val responseJson = try {
@@ -177,12 +194,12 @@ open class ApiClient(
                 }
 
                 verifyResponse(networkResponse, responseJson)
-                return@withContext responseHandler(responseJson)
+                return@withContext responseHandler(networkResponseInfo, responseJson)
             } else {
                 runCatching {
                     parseResponse(networkResponse)
                 }.onSuccess {
-                    errorHandler?.invoke(it)
+                    errorHandler?.invoke(networkResponseInfo, it)
                     verifyResponse(networkResponse, it)
                 }
 
@@ -195,115 +212,5 @@ open class ApiClient(
         } catch (e: Throwable) {
             throw e
         }
-    }
-}
-
-suspend fun <T> ApiClient.get(
-    endpoint: String,
-    query: Map<String, Any?>? = null,
-    headers: Map<String, String>? = null,
-    errorHandler: ResponseHandler<Unit>? = null,
-    response: ResponseHandler<T>
-): T = call(
-    method = Method.GET,
-    endpoint = endpoint,
-    query = query,
-    headers = headers,
-    errorHandler = errorHandler,
-    responseHandler = response
-)
-
-suspend fun <T> ApiClient.post(
-    endpoint: String,
-    query: Map<String, Any?>? = null,
-    headers: Map<String, String>? = null,
-    body: RequestBodyBuilder? = null,
-    errorHandler: ResponseHandler<Unit>? = null,
-    response: ResponseHandler<T>
-): T = call(
-    method = Method.POST,
-    endpoint = endpoint,
-    query = query,
-    headers = headers,
-    body = body,
-    errorHandler = errorHandler,
-    responseHandler = response
-)
-
-suspend fun <T> ApiClient.put(
-    endpoint: String,
-    query: Map<String, Any?>? = null,
-    headers: Map<String, String>? = null,
-    body: RequestBodyBuilder? = null,
-    errorHandler: ResponseHandler<Unit>? = null,
-    response: ResponseHandler<T>
-): T = call(
-    method = Method.PUT,
-    endpoint = endpoint,
-    query = query,
-    headers = headers,
-    body = body,
-    errorHandler = errorHandler,
-    responseHandler = response
-)
-
-suspend fun <T> ApiClient.delete(
-    endpoint: String,
-    query: Map<String, Any?>? = null,
-    headers: Map<String, String>? = null,
-    body: RequestBodyBuilder? = null,
-    errorHandler: ResponseHandler<Unit>? = null,
-    response: ResponseHandler<T>
-): T = call(
-    method = Method.DELETE,
-    endpoint = endpoint,
-    query = query,
-    headers = headers,
-    body = body,
-    errorHandler = errorHandler,
-    responseHandler = response
-)
-
-fun <T> ApiClient.upload(
-    method: Method,
-    endpoint: String,
-    query: Map<String, Any?>? = null,
-    headers: Map<String, String>? = null,
-    body: RequestBodyBuilder? = null,
-    errorHandler: ResponseHandler<Unit>? = null,
-    response: ResponseHandler<T>
-): Flow<ProgressEvent<T>> = channelFlow {
-    val mutex = Mutex()
-    var sendProgress = true
-
-    try {
-        call(
-            method = method,
-            endpoint = endpoint,
-            query = query,
-            headers = headers,
-            body = body,
-            errorHandler = errorHandler,
-            uploadProgress = { sent, total ->
-                mutex.withLock {
-                    if (sendProgress) {
-                        send(
-                            ProgressEvent.Progress(
-                                bytesSentTotal = sent,
-                                contentLength = total
-                            )
-                        )
-                    }
-                }
-            },
-            responseHandler = response
-        ).also { result ->
-            mutex.withLock {
-                send(ProgressEvent.Done(result))
-                sendProgress = false
-            }
-        }
-    } catch (t: Throwable) {
-        close(t)
     }
 }
