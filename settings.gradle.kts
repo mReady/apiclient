@@ -15,5 +15,5 @@ dependencyResolutionManagement {
     }
 }
 
-include(":lib")
+include(":core")
 
