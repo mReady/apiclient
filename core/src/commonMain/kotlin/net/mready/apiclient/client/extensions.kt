@@ -15,14 +15,14 @@ suspend fun <T> ApiClient.get(
     endpoint: String,
     query: Map<String, Any?>? = null,
     headers: Map<String, String>? = null,
-    errorHandler: ResponseHandler<Unit>? = null,
+    errorHandler: ErrorHandler? = null,
     response: ResponseHandler<T>
 ): T = call(
     method = HttpMethod.Get,
     endpoint = endpoint,
     query = query,
     headers = headers,
-    errorHandler = { _, json -> errorHandler?.invoke(json) },
+    errorHandler = errorHandler,
     responseHandler = { _, json -> response(json) }
 )
 
@@ -34,7 +34,7 @@ suspend fun <T> ApiClient.post(
     query: Map<String, Any?>? = null,
     headers: Map<String, String>? = null,
     body: RequestBodyBuilder? = null,
-    errorHandler: ResponseHandler<Unit>? = null,
+    errorHandler: ErrorHandler? = null,
     response: ResponseHandler<T>
 ): T = call(
     method = HttpMethod.Post,
@@ -42,7 +42,7 @@ suspend fun <T> ApiClient.post(
     query = query,
     headers = headers,
     body = body,
-    errorHandler = { _, json -> errorHandler?.invoke(json) },
+    errorHandler = errorHandler,
     responseHandler = { _, json -> response(json) }
 )
 
@@ -54,7 +54,7 @@ suspend fun <T> ApiClient.put(
     query: Map<String, Any?>? = null,
     headers: Map<String, String>? = null,
     body: RequestBodyBuilder? = null,
-    errorHandler: ResponseHandler<Unit>? = null,
+    errorHandler: ErrorHandler? = null,
     response: ResponseHandler<T>
 ): T = call(
     method = HttpMethod.Put,
@@ -62,7 +62,7 @@ suspend fun <T> ApiClient.put(
     query = query,
     headers = headers,
     body = body,
-    errorHandler = { _, json -> errorHandler?.invoke(json) },
+    errorHandler = errorHandler,
     responseHandler = { _, json -> response(json) }
 )
 
@@ -74,7 +74,7 @@ suspend fun <T> ApiClient.delete(
     query: Map<String, Any?>? = null,
     headers: Map<String, String>? = null,
     body: RequestBodyBuilder? = null,
-    errorHandler: ResponseHandler<Unit>? = null,
+    errorHandler: ErrorHandler? = null,
     response: ResponseHandler<T>
 ): T = call(
     method = HttpMethod.Delete,
@@ -82,7 +82,7 @@ suspend fun <T> ApiClient.delete(
     query = query,
     headers = headers,
     body = body,
-    errorHandler = { _, json -> errorHandler?.invoke(json) },
+    errorHandler = errorHandler,
     responseHandler = { _, json -> response(json) }
 )
 
@@ -102,7 +102,7 @@ fun <T> ApiClient.upload(
     query: Map<String, Any?>? = null,
     headers: Map<String, String>? = null,
     body: RequestBodyBuilder? = null,
-    errorHandler: ResponseHandler<Unit>? = null,
+    errorHandler: ErrorHandler? = null,
     response: ResponseHandler<T>
 ): Flow<ProgressEvent<T>> = channelFlow {
     val mutex = Mutex()
@@ -115,7 +115,7 @@ fun <T> ApiClient.upload(
             query = query,
             headers = headers,
             body = body,
-            errorHandler = { _, json -> errorHandler?.invoke(json) },
+            errorHandler = errorHandler,
             uploadProgress = { sent, total ->
                 mutex.withLock {
                     if (sendProgress) {
