@@ -1,10 +1,15 @@
 package net.mready.apiclient.builders
 
+
+import io.ktor.client.*
 import net.mready.apiclient.client.ApiClient
 import net.mready.apiclient.client.post
 import net.mready.json.jsonObject
 
-val client = ApiClient()
+val client = ApiClient(
+    baseUrl = "",
+    httpClient = HttpClient()
+)
 
 /**
  * Sample for [RawBodyBuilder]

@@ -1,7 +1,6 @@
 package net.mready.apiclient.client
 
 import io.ktor.client.*
-import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -40,8 +39,8 @@ typealias ResponseHandler<T> = (Json) -> T
  * @property jsonAdapter The JSON adapter to use for parsing and serializing JSON.
  */
 open class ApiClient(
-    private val baseUrl: String = "",
-    protected val httpClient: HttpClient = HttpClient(CIO),
+    private val baseUrl: String,
+    protected val httpClient: HttpClient,
     protected val jsonAdapter: JsonAdapter = KotlinxJsonAdapter()
 ) {
 
