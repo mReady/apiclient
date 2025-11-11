@@ -1,5 +1,3 @@
-rootProject.name = "apiclient"
-
 pluginManagement {
     repositories {
         google()
@@ -15,5 +13,6 @@ dependencyResolutionManagement {
     }
 }
 
+rootProject.name = "apiclient"
 include(":core")
 
