@@ -11,7 +11,7 @@ plugins {
 }
 
 group = "net.mready.apiclient"
-version = "1.1.0"
+version = "1.1.1"
 
 mavenPublishing {
     //For publishing to mavenLocal comment the next line, uncomment the id("maven-publish") plugin
@@ -23,7 +23,7 @@ mavenPublishing {
 
     pom {
         name = "Api Client"
-        description = "An easy-to-use library for handling HTTP requests built on top of OkHttp and FluidJson"
+        description = "An easy-to-use library for handling HTTP requests built on top of Ktor and FluidJson"
         url = "https://github.com/mready/apiclient/"
 
         licenses {

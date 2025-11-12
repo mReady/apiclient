@@ -7,7 +7,7 @@ dokka = "2.1.0"
 kotlin = "2.2.21"
 vanitek-maven-publish = "0.34.0"
 kotlinx-coroutines = "1.10.2"
-mready-json = "1.0.0"
+mready-json = "1.0.1"
 kotlinx-serialization = "1.9.0"
 ktor = "3.3.1"
 
