@@ -3,6 +3,7 @@ package net.mready.apiclient.builders
 import io.ktor.http.*
 import net.mready.apiclient.toByteArray
 import platform.Foundation.NSData
+import kotlin.experimental.ExperimentalObjCName
 
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
 actual class FileInfo(
@@ -18,7 +19,10 @@ actual class FileInfo(
         contentType = contentType
     )
 
+    @OptIn(ExperimentalObjCName::class)
     actual companion object {
+        @ObjCName("defaultContentType")
+        fun defaultContentType(): ContentType = FileInfo.defaultContentType
         internal actual fun create(
             byteArray: ByteArray,
             fileName: String,

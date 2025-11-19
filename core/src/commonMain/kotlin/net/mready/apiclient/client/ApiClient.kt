@@ -23,6 +23,12 @@ import net.mready.json.adapters.KotlinxJsonAdapter
 sealed class ProgressEvent<out T> {
     class Progress<T>(val bytesSentTotal: Long, val contentLength: Long?) : ProgressEvent<T>()
     class Done<out T>(val data: T) : ProgressEvent<T>()
+
+    //iOS helpers
+    fun isProgress(): Boolean = this is Progress<T>
+    fun isDone(): Boolean = this is Done<T>
+    fun <T> progress() = this as? Progress<*>
+    fun <T> done() = this as? Done<*>
 }
 
 
@@ -83,7 +89,8 @@ open class ApiClient(
     /**
      * Parse the given [response] and return the body as a [Json] object.
      */
-    protected open suspend fun parseResponse(response: HttpResponse): Json = jsonAdapter.parse(response.bodyAsText())
+    protected open suspend fun parseResponse(response: HttpResponse): Json =
+        jsonAdapter.parse(response.bodyAsText())
 
     /**
      * Verify the given [response] in order to validate it and maybe throw general exceptions.

@@ -11,7 +11,7 @@ plugins {
 }
 
 group = "net.mready.apiclient"
-version = "1.1.1"
+version = "1.1.2"
 
 mavenPublishing {
     //For publishing to mavenLocal comment the next line, uncomment the id("maven-publish") plugin
